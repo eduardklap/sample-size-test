@@ -1,0 +1,25 @@
+project:
+  type: manuscript
+
+manuscript:
+  article: sample-size-fmri-paper.qmd
+  notebooks:
+    - notebook: notebooks/figures-cohens_d.qmd
+      title: Code to create Figures 1 and 2
+    - notebook: notebooks/figures-correlations.qmd
+      title: Code to create Figures 3 and 4
+
+format:
+  html:
+    theme: litera
+    comments:
+      hypothesis: true
+  docx: default
+  jats: default
+  pdf: default
+
+execute:
+  freeze: true
+
+
+
