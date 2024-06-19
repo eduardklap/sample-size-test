@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.553">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Eduard T. Klapwijk">
+<meta name="author" content="Joran Jongerling">
+<meta name="author" content="Herbert Hoijtink">
+<meta name="author" content="Eveline A. Crone">
+<meta name="dcterms.date" content="2024-06-19">
+<meta name="keywords" content="power analysis, region of interest, effect size, R package, sample sizes, Bayesian updating">
+
+<title>Sample size estimation for task-related functional MRI studies using Bayesian updating</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta name="citation_title" content="Sample size estimation for task-related functional MRI studies using Bayesian updating">
+<meta name="citation_abstract" content="Task-related functional MRI (fMRI) studies need to be properly powered with an adequate sample size to reliably detect effects of interest. But for most fMRI studies, it is not straightforward to determine a proper sample size using power calculations based on published effect sizes. Here, we present an alternative approach of sample size estimation with empirical Bayesian updating. First, this method provides an estimate of the required sample size using existing data from a similar task and similar region of interest. Using this estimate researchers can plan their research project, and report empirically determined sample size estimations in their research proposal or pre-registration. Second, researchers can expand the sample size estimations with new data. We illustrate this approach using four existing fMRI data sets where Cohen’s d is the effect size of interest for the hemodynamic response in the task condition of interest versus a control condition, and where a Pearson correlation between task effect and age is the covariate of interest. We show that sample sizes to reliably detect effects differ between various tasks and regions of interest. We provide an R package to allow researchers to use Bayesian updating with other task-related fMRI studies.
+">
+<meta name="citation_keywords" content="power analysis,region of interest,effect size,R package,sample sizes,Bayesian updating">
+<meta name="citation_author" content="Eduard T. Klapwijk">
+<meta name="citation_author" content="Joran Jongerling">
+<meta name="citation_author" content="Herbert Hoijtink">
+<meta name="citation_author" content="Eveline A. Crone">
+<meta name="citation_publication_date" content="2024-06-19">
+<meta name="citation_cover_date" content="2024-06-19">
+<meta name="citation_year" content="2024">
+<meta name="citation_online_date" content="2024-06-19">
+<meta name="citation_language" content="en">
+<meta name="citation_reference" content="citation_title=Rein in the four horsemen of irreproducibility;,citation_author=Dorothy Bishop;,citation_publication_date=2019-04;,citation_cover_date=2019-04;,citation_year=2019;,citation_fulltext_html_url=http://www.nature.com/articles/d41586-019-01307-2;,citation_issue=7753;,citation_doi=10.1038/d41586-019-01307-2;,citation_volume=568;,citation_language=en;,citation_journal_title=Nature;">
+<meta name="citation_reference" content="citation_title=A manifesto for reproducible science;,citation_author=Marcus R. Munafò;,citation_author=Brian A. Nosek;,citation_author=Dorothy V. M. Bishop;,citation_author=Katherine S. Button;,citation_author=Christopher D. Chambers;,citation_author=Nathalie Percie du Sert;,citation_author=Uri Simonsohn;,citation_author=Eric-Jan Wagenmakers;,citation_author=Jennifer J. Ware;,citation_author=John P. A. Ioannidis;,citation_publication_date=2017-01-10;,citation_cover_date=2017-01-10;,citation_year=2017;,citation_fulltext_html_url=http://www.nature.com/articles/s41562-016-0021;,citation_issue=1;,citation_doi=10.1038/s41562-016-0021;,citation_volume=1;,citation_language=en;,citation_journal_title=Nature Human Behaviour;">
+<meta name="citation_reference" content="citation_title=Opportunities for increased reproducibility and replicability of developmental neuroimaging;,citation_author=Eduard T. Klapwijk;,citation_author=Wouter Bos;,citation_author=Christian K. Tamnes;,citation_author=Nora M. Raschle;,citation_author=Kathryn L. Mills;,citation_publication_date=2021-02-01;,citation_cover_date=2021-02-01;,citation_year=2021;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1878929320301511;,citation_doi=10.1016/j.dcn.2020.100902;,citation_volume=47;,citation_language=en;,citation_journal_title=Developmental Cognitive Neuroscience;">
+<meta name="citation_reference" content="citation_title=Scanning the horizon: Towards transparent and reproducible neuroimaging research;,citation_author=R. A. Poldrack;,citation_author=C. I. Baker;,citation_author=J. Durnez;,citation_author=K. J. Gorgolewski;,citation_author=P. M. Matthews;,citation_author=M. R. Munafo;,citation_author=T. E. Nichols;,citation_author=J. B. Poline;,citation_author=E. Vul;,citation_author=T. Yarkoni;,citation_publication_date=2017-02;,citation_cover_date=2017-02;,citation_year=2017;,citation_issue=2;,citation_doi=10.1038/nrn.2016.167;,citation_volume=18;,citation_journal_title=Nature Reviews Neuroscience;">
+<meta name="citation_reference" content="citation_title=Reproducible brain-wide association studies require thousands of individuals;,citation_author=Scott Marek;,citation_author=Brenden Tervo-Clemmens;,citation_author=Finnegan J. Calabro;,citation_author=David F. Montez;,citation_author=Benjamin P. Kay;,citation_author=Alexander S. Hatoum;,citation_author=Meghan Rose Donohue;,citation_author=William Foran;,citation_author=Ryland L. Miller;,citation_author=Timothy J. Hendrickson;,citation_author=Stephen M. Malone;,citation_author=Sridhar Kandala;,citation_author=Eric Feczko;,citation_author=Oscar Miranda-Dominguez;,citation_author=Alice M. Graham;,citation_author=Eric A. Earl;,citation_author=Anders J. Perrone;,citation_author=Michaela Cordova;,citation_author=Olivia Doyle;,citation_author=Lucille A. Moore;,citation_author=Gregory M. Conan;,citation_author=Johnny Uriarte;,citation_author=Kathy Snider;,citation_author=Benjamin J. Lynch;,citation_author=James C. Wilgenbusch;,citation_author=Thomas Pengo;,citation_author=Angela Tam;,citation_author=Jianzhong Chen;,citation_author=Dillan J. Newbold;,citation_author=Annie Zheng;,citation_author=Nicole A. Seider;,citation_author=Andrew N. Van;,citation_author=Athanasia Metoki;,citation_author=Roselyne J. Chauvin;,citation_author=Timothy O. Laumann;,citation_author=Deanna J. Greene;,citation_author=Steven E. Petersen;,citation_author=Hugh Garavan;,citation_author=Wesley K. Thompson;,citation_author=Thomas E. Nichols;,citation_author=B. T. Thomas Yeo;,citation_author=Deanna M. Barch;,citation_author=Beatriz Luna;,citation_author=Damien A. Fair;,citation_author=Nico U. F. Dosenbach;,citation_publication_date=2022-03;,citation_cover_date=2022-03;,citation_year=2022;,citation_fulltext_html_url=https://www.nature.com/articles/s41586-022-04492-9;,citation_issue=7902;,citation_doi=10.1038/s41586-022-04492-9;,citation_volume=603;,citation_language=en;,citation_journal_title=Nature;">
+<meta name="citation_reference" content="citation_title=A power primer;,citation_author=Jacob Cohen;,citation_publication_date=1992-07;,citation_cover_date=1992-07;,citation_year=1992;,citation_fulltext_html_url=https://login.ezproxy.leidenuniv.nl:2443/login?URL=http://search.ebscohost.com/login.aspx?direct=true&amp;amp;amp;db=pdh&amp;AN=1992-37683-001&amp;site=ehost-live;,citation_issue=1;,citation_doi=10.1037/0033-2909.112.1.155;,citation_volume=112;,citation_journal_title=Psychological Bulletin;">
+<meta name="citation_reference" content="citation_title=Evaluating Effect Size in Psychological Research: Sense and Nonsense;,citation_author=David C. Funder;,citation_author=Daniel J. Ozer;,citation_publication_date=2019-06-01;,citation_cover_date=2019-06-01;,citation_year=2019;,citation_fulltext_html_url=https://doi.org/10.1177/2515245919847202;,citation_issue=2;,citation_doi=10.1177/2515245919847202;,citation_volume=2;,citation_language=en;,citation_journal_title=Advances in Methods and Practices in Psychological Science;">
+<meta name="citation_reference" content="citation_title=Effect size guidelines for individual differences researchers;,citation_author=Gilles E. Gignac;,citation_author=Eva T. Szodorai;,citation_publication_date=2016-11-01;,citation_cover_date=2016-11-01;,citation_year=2016;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S0191886916308194;,citation_doi=10.1016/j.paid.2016.06.069;,citation_volume=102;,citation_journal_title=Personality and Individual Differences;">
+<meta name="citation_reference" content="citation_title=Big Correlations in Little Studies: Inflated fMRI Correlations Reflect Low Statistical PowerCommentary on Vul et al. (2009);,citation_author=Tal Yarkoni;,citation_publication_date=2009-05-01;,citation_cover_date=2009-05-01;,citation_year=2009;,citation_fulltext_html_url=https://doi.org/10.1111/j.1745-6924.2009.01127.x;,citation_issue=3;,citation_doi=10.1111/j.1745-6924.2009.01127.x;,citation_volume=4;,citation_language=en;,citation_journal_title=Perspectives on Psychological Science;">
+<meta name="citation_reference" content="citation_title=Power failure: why small sample size undermines the reliability of neuroscience;,citation_author=Katherine S. Button;,citation_author=John P. A. Ioannidis;,citation_author=Claire Mokrysz;,citation_author=Brian A. Nosek;,citation_author=Jonathan Flint;,citation_author=Emma S. J. Robinson;,citation_author=Marcus R. Munafò;,citation_publication_date=2013-05;,citation_cover_date=2013-05;,citation_year=2013;,citation_fulltext_html_url=http://www.nature.com/articles/nrn3475;,citation_issue=5;,citation_doi=10.1038/nrn3475;,citation_volume=14;,citation_language=en;,citation_journal_title=Nature Reviews Neuroscience;">
+<meta name="citation_reference" content="citation_title=The Persistence of Underpowered Studies in Psychological Research: Causes, Consequences, and Remedies.;,citation_author=Scott E. Maxwell;,citation_publication_date=2004;,citation_cover_date=2004;,citation_year=2004;,citation_fulltext_html_url=http://doi.apa.org/getdoi.cfm?doi=10.1037/1082-989X.9.2.147;,citation_issue=2;,citation_doi=10.1037/1082-989X.9.2.147;,citation_volume=9;,citation_language=en;,citation_journal_title=Psychological Methods;">
+<meta name="citation_reference" content="citation_title=Power-up: A Reanalysis of ’Power Failure’ in Neuroscience Using Mixture Modeling;,citation_author=Camilla L. Nord;,citation_author=Vincent Valton;,citation_author=John Wood;,citation_author=Jonathan P. Roiser;,citation_publication_date=2017-08-23;,citation_cover_date=2017-08-23;,citation_year=2017;,citation_fulltext_html_url=http://www.jneurosci.org/content/37/34/8051;,citation_issue=34;,citation_doi=10.1523/JNEUROSCI.3592-16.2017;,citation_volume=37;,citation_language=en;,citation_journal_title=Journal of Neuroscience;">
+<meta name="citation_reference" content="citation_title=Empirical assessment of published effect sizes and power in the recent cognitive neuroscience and psychology literature;,citation_author=Denes Szucs;,citation_author=John P. A. Ioannidis;,citation_publication_date=2017-03-02;,citation_cover_date=2017-03-02;,citation_year=2017;,citation_fulltext_html_url=https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.2000797;,citation_issue=3;,citation_doi=10.1371/journal.pbio.2000797;,citation_volume=15;,citation_language=en;,citation_journal_title=PLOS Biology;">
+<meta name="citation_reference" content="citation_title=Small sample sizes reduce the replicability of task-based fMRI studies;,citation_author=Benjamin O. Turner;,citation_author=Erick J. Paul;,citation_author=Michael B. Miller;,citation_author=Aron K. Barbey;,citation_publication_date=2018-12;,citation_cover_date=2018-12;,citation_year=2018;,citation_fulltext_html_url=http://www.nature.com/articles/s42003-018-0073-z;,citation_issue=1;,citation_doi=10.1038/s42003-018-0073-z;,citation_volume=1;,citation_language=en;,citation_journal_title=Communications Biology;">
+<meta name="citation_reference" content="citation_title=Genetic and environmental influences on MRI scan quantity and quality;,citation_author=Michelle Achterberg;,citation_author=Mara Meulen;,citation_publication_date=2019-08-01;,citation_cover_date=2019-08-01;,citation_year=2019;,citation_fulltext_html_url=https://www.sciencedirect.com/science/article/pii/S1878929318302172;,citation_doi=10.1016/j.dcn.2019.100667;,citation_volume=38;,citation_journal_title=Developmental Cognitive Neuroscience;">
+<meta name="citation_reference" content="citation_title=The IMAGEN study: reinforcement-related behaviour in normal brain function and psychopathology;,citation_author=G. Schumann;,citation_author=E. Loth;,citation_author=T. Banaschewski;,citation_author=A. Barbot;,citation_author=G. Barker;,citation_author=C. Büchel;,citation_author=P. J. Conrod;,citation_author=J. W. Dalley;,citation_author=H. Flor;,citation_author=J. Gallinat;,citation_author=H. Garavan;,citation_author=A. Heinz;,citation_author=B. Itterman;,citation_author=M. Lathrop;,citation_author=C. Mallik;,citation_author=K. Mann;,citation_author=J.-L. Martinot;,citation_author=T. Paus;,citation_author=J.-B. Poline;,citation_author=T. W. Robbins;,citation_author=M. Rietschel;,citation_author=L. Reed;,citation_author=M. Smolka;,citation_author=R. Spanagel;,citation_author=C. Speiser;,citation_author=D. N. Stephens;,citation_author=A. Ströhle;,citation_author=M. Struve;,citation_publication_date=2010-12;,citation_cover_date=2010-12;,citation_year=2010;,citation_fulltext_html_url=https://www.nature.com/articles/mp20104;,citation_issue=12;,citation_doi=10.1038/mp.2010.4;,citation_volume=15;,citation_language=en;,citation_journal_title=Molecular Psychiatry;">
+<meta name="citation_reference" content="citation_title=The Philadelphia Neurodevelopmental Cohort: A publicly available resource for the study of normal and abnormal brain development in youth;,citation_author=Theodore D. Satterthwaite;,citation_author=John J. Connolly;,citation_author=Kosha Ruparel;,citation_author=Monica E. Calkins;,citation_author=Chad Jackson;,citation_author=Mark A. Elliott;,citation_author=David R. Roalf;,citation_author=Ryan Hopson;,citation_author=Karthik Prabhakaran;,citation_author=Meckenzie Behr;,citation_author=Haijun Qiu;,citation_author=Frank D. Mentch;,citation_author=Rosetta Chiavacci;,citation_author=Patrick M. A. Sleiman;,citation_author=Ruben C. Gur;,citation_author=Hakon Hakonarson;,citation_author=Raquel E. Gur;,citation_publication_date=2016-01-01;,citation_cover_date=2016-01-01;,citation_year=2016;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1053811915002529;,citation_doi=10.1016/j.neuroimage.2015.03.056;,citation_volume=124;,citation_language=en;,citation_journal_title=NeuroImage;,citation_series_title=Sharing the wealth: Brain Imaging Repositories in 2015;">
+<meta name="citation_reference" content="citation_title=The Lifespan Human Connectome Project in Development: A large-scale study of brain connectivity development in 521 year olds;,citation_author=Leah H. Somerville;,citation_author=Susan Y. Bookheimer;,citation_author=Randy L. Buckner;,citation_author=Gregory C. Burgess;,citation_author=Sandra W. Curtiss;,citation_author=Mirella Dapretto;,citation_author=Jennifer Stine Elam;,citation_author=Michael S. Gaffrey;,citation_author=Michael P. Harms;,citation_author=Cynthia Hodge;,citation_author=Sridhar Kandala;,citation_author=Erik K. Kastman;,citation_author=Thomas E. Nichols;,citation_author=Bradley L. Schlaggar;,citation_author=Stephen M. Smith;,citation_author=Kathleen M. Thomas;,citation_author=Essa Yacoub;,citation_author=David C. Van Essen;,citation_author=Deanna M. Barch;,citation_publication_date=2018-12-01;,citation_cover_date=2018-12-01;,citation_year=2018;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1053811918307481;,citation_doi=10.1016/j.neuroimage.2018.08.050;,citation_volume=183;,citation_language=en;,citation_journal_title=NeuroImage;">
+<meta name="citation_reference" content="citation_title=The adolescent brain cognitive development (ABCD) study: Imaging acquisition across 21 sites;,citation_author=B. J. Casey;,citation_author=Tariq Cannonier;,citation_author=May I. Conley;,citation_author=Alexandra O. Cohen;,citation_author=Deanna M. Barch;,citation_author=Mary M. Heitzeg;,citation_author=Mary E. Soules;,citation_author=Theresa Teslovich;,citation_author=Danielle V. Dellarco;,citation_author=Hugh Garavan;,citation_author=Catherine A. Orr;,citation_author=Tor D. Wager;,citation_author=Marie T. Banich;,citation_author=Nicole K. Speer;,citation_author=Matthew T. Sutherland;,citation_author=Michael C. Riedel;,citation_author=Anthony S. Dick;,citation_author=James M. Bjork;,citation_author=Kathleen M. Thomas;,citation_author=Bader Chaarani;,citation_author=Margie H. Mejia;,citation_author=Donald J. Hagler;,citation_author=M. Daniela Cornejo;,citation_author=Chelsea S. Sicat;,citation_author=Michael P. Harms;,citation_author=Nico U. F. Dosenbach;,citation_author=Monica Rosenberg;,citation_author=Eric Earl;,citation_author=Hauke Bartsch;,citation_author=Richard Watts;,citation_author=Jonathan R. Polimeni;,citation_author=Joshua M. Kuperman;,citation_author=Damien A. Fair;,citation_author=Anders M. Dale;,citation_publication_date=2018-08-01;,citation_cover_date=2018-08-01;,citation_year=2018;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1878929317301214;,citation_doi=10.1016/j.dcn.2018.03.001;,citation_volume=32;,citation_journal_title=Developmental Cognitive Neuroscience;,citation_series_title=The adolescent brain cognitive development (ABCD) consortium: Rationale, aims, and assessment strategy;">
+<meta name="citation_reference" content="citation_title=Beyond Power Calculations: Assessing Type S (Sign) and Type M (Magnitude) Errors;,citation_author=Andrew Gelman;,citation_author=John Carlin;,citation_publication_date=2014-11-01;,citation_cover_date=2014-11-01;,citation_year=2014;,citation_fulltext_html_url=https://doi.org/10.1177/1745691614551642;,citation_issue=6;,citation_doi=10.1177/1745691614551642;,citation_volume=9;,citation_language=en;,citation_journal_title=Perspectives on Psychological Science;">
+<meta name="citation_reference" content="citation_title=Why Most Published Research Findings Are False;,citation_author=John P. A. Ioannidis;,citation_publication_date=2005-08-30;,citation_cover_date=2005-08-30;,citation_year=2005;,citation_fulltext_html_url=https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124;,citation_issue=8;,citation_doi=10.1371/journal.pmed.0020124;,citation_volume=2;,citation_language=en;,citation_journal_title=PLOS Medicine;">
+<meta name="citation_reference" content="citation_title=Estimating the reproducibility of psychological science;,citation_author=undefined Open Science Collaboration;,citation_publication_date=2015-08-28;,citation_cover_date=2015-08-28;,citation_year=2015;,citation_fulltext_html_url=https://science.sciencemag.org/content/349/6251/aac4716;,citation_issue=6251;,citation_doi=10.1126/science.aac4716;,citation_volume=349;,citation_language=en;,citation_journal_title=Science;">
+<meta name="citation_reference" content="citation_title=Degrees of freedom in planning, running, analyzing, and reporting psychological studies: A checklist to avoid p-hacking;,citation_author=Jelte M. Wicherts;,citation_author=Coosje L. S. Veldkamp;,citation_author=Hilde E. M. Augusteijn;,citation_author=Marjan Bakker;,citation_author=Robbie C. M. Aert;,citation_author=Marcel A. L. M. Assen;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_fulltext_html_url=https://www.frontiersin.org/articles/10.3389/fpsyg.2016.01832;,citation_volume=7;,citation_journal_title=Frontiers in Psychology;">
+<meta name="citation_reference" content="citation_title=Optional stopping: No problem for Bayesians;,citation_author=Jeffrey N. Rouder;,citation_publication_date=2014-04-01;,citation_cover_date=2014-04-01;,citation_year=2014;,citation_fulltext_html_url=https://doi.org/10.3758/s13423-014-0595-4;,citation_issue=2;,citation_doi=10.3758/s13423-014-0595-4;,citation_volume=21;,citation_language=en;,citation_journal_title=Psychonomic Bulletin &amp;amp;amp; Review;">
+<meta name="citation_reference" content="citation_title=Neural Perspectives on Cognitive Control Development during Childhood and Adolescence;,citation_author=Eveline A. Crone;,citation_author=Nikolaus Steinbeis;,citation_publication_date=2017-03;,citation_cover_date=2017-03;,citation_year=2017;,citation_issue=3;,citation_doi=10.1016/j.tics.2017.01.003;,citation_volume=21;,citation_language=eng;,citation_journal_title=Trends in Cognitive Sciences;">
+<meta name="citation_reference" content="citation_title=Gambling for self, friends, and antagonists: Differential contributions of affective and social brain regions on adolescent reward processing;,citation_author=Barbara R. Braams;,citation_author=Sabine Peters;,citation_author=Jiska S. Peper;,citation_author=Berna Güroğlu;,citation_author=Eveline A. Crone;,citation_publication_date=2014-10-15;,citation_cover_date=2014-10-15;,citation_year=2014;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1053811914004972;,citation_doi=10.1016/j.neuroimage.2014.06.020;,citation_volume=100;,citation_language=en;,citation_journal_title=NeuroImage;">
+<meta name="citation_reference" content="citation_title=Increased striatal activity in adolescence benefits learning;,citation_author=Sabine Peters;,citation_author=Eveline A. Crone;,citation_publication_date=2017-12-19;,citation_cover_date=2017-12-19;,citation_year=2017;,citation_issue=1;,citation_doi=10.1038/s41467-017-02174-z;,citation_volume=8;,citation_journal_title=Nature Communications;">
+<meta name="citation_reference" content="citation_title=Longitudinal neural and behavioral trajectories of charity contributions across adolescence;,citation_author=Jochem Spaans;,citation_author=Sabine Peters;,citation_author=Andrik Becht;,citation_author=Renske Cruijsen;,citation_author=Suzanne Groep;,citation_author=Eveline A. Crone;,citation_publication_date=2023;,citation_cover_date=2023;,citation_year=2023;,citation_fulltext_html_url=https://onlinelibrary.wiley.com/doi/abs/10.1111/jora.12820;,citation_issue=2;,citation_doi=10.1111/jora.12820;,citation_volume=33;,citation_language=en;,citation_journal_title=Journal of Research on Adolescence;">
+<meta name="citation_reference" content="citation_title=Longitudinal self-concept development in adolescence;,citation_author=Renske Cruijsen;,citation_author=Neeltje E Blankenstein;,citation_author=Jochem P Spaans;,citation_author=Sabine Peters;,citation_author=Eveline A Crone;,citation_publication_date=2023-01-01;,citation_cover_date=2023-01-01;,citation_year=2023;,citation_fulltext_html_url=https://doi.org/10.1093/scan/nsac062;,citation_issue=1;,citation_doi=10.1093/scan/nsac062;,citation_volume=18;,citation_journal_title=Social Cognitive and Affective Neuroscience;">
+<meta name="citation_reference" content="citation_title=An introduction to the bootstrap;,citation_author=Bradley Efron;,citation_author=R. J. Tibshirani;,citation_publication_date=1994-05-15;,citation_cover_date=1994-05-15;,citation_year=1994;,citation_doi=10.1201/9780429246593;">
+<meta name="citation_reference" content="citation_title=neuroUp: Plan sample size for fMRI regions of interest research using bayesian updating;,citation_author=Eduard Klapwijk;,citation_author=Herbert Hoijtink;,citation_author=Joran Jongerling;,citation_publication_date=2024-06;,citation_cover_date=2024-06;,citation_year=2024;,citation_fulltext_html_url=https://doi.org/10.5281/zenodo.11526169;,citation_doi=10.5281/zenodo.11526169;">
+<meta name="citation_reference" content="citation_title=Welcome to the Tidyverse;,citation_author=Hadley Wickham;,citation_author=Mara Averick;,citation_author=Jennifer Bryan;,citation_author=Winston Chang;,citation_author=Lucy D’Agostino McGowan;,citation_author=Romain François;,citation_author=Garrett Grolemund;,citation_author=Alex Hayes;,citation_author=Lionel Henry;,citation_author=Jim Hester;,citation_author=Max Kuhn;,citation_author=Thomas Lin Pedersen;,citation_author=Evan Miller;,citation_author=Stephan Milton Bache;,citation_author=Kirill Müller;,citation_author=Jeroen Ooms;,citation_author=David Robinson;,citation_author=Dana Paige Seidel;,citation_author=Vitalie Spinu;,citation_author=Kohske Takahashi;,citation_author=Davis Vaughan;,citation_author=Claus Wilke;,citation_author=Kara Woo;,citation_author=Hiroaki Yutani;,citation_publication_date=2019-11-21;,citation_cover_date=2019-11-21;,citation_year=2019;,citation_fulltext_html_url=https://joss.theoj.org/papers/10.21105/joss.01686;,citation_issue=43;,citation_doi=10.21105/joss.01686;,citation_volume=4;,citation_language=en;,citation_journal_title=Journal of Open Source Software;">
+<meta name="citation_reference" content="citation_title=At what sample size do correlations stabilize?;,citation_author=Felix D. Schönbrodt;,citation_author=Marco Perugini;,citation_publication_date=2013-10-01;,citation_cover_date=2013-10-01;,citation_year=2013;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S0092656613000858;,citation_issue=5;,citation_doi=10.1016/j.jrp.2013.05.009;,citation_volume=47;,citation_journal_title=Journal of Research in Personality;">
+<meta name="citation_reference" content="citation_title=fMRI reliability: Influences of task and experimental design;,citation_author=Craig M. Bennett;,citation_author=Michael B. Miller;,citation_publication_date=2013-12-01;,citation_cover_date=2013-12-01;,citation_year=2013;,citation_fulltext_html_url=https://doi.org/10.3758/s13415-013-0195-1;,citation_issue=4;,citation_doi=10.3758/s13415-013-0195-1;,citation_volume=13;,citation_language=en;,citation_journal_title=Cognitive, Affective, &amp;amp;amp; Behavioral Neuroscience;">
+<meta name="citation_reference" content="citation_title=What Is the Test-Retest Reliability of Common Task-Functional MRI Measures? New Empirical Evidence and a Meta-Analysis;,citation_author=Maxwell L. Elliott;,citation_author=Annchen R. Knodt;,citation_author=David Ireland;,citation_author=Meriwether L. Morris;,citation_author=Richie Poulton;,citation_author=Sandhya Ramrakha;,citation_author=Maria L. Sison;,citation_author=Terrie E. Moffitt;,citation_author=Avshalom Caspi;,citation_author=Ahmad R. Hariri;,citation_publication_date=2020-07-01;,citation_cover_date=2020-07-01;,citation_year=2020;,citation_fulltext_html_url=https://doi.org/10.1177/0956797620916786;,citation_issue=7;,citation_doi=10.1177/0956797620916786;,citation_volume=31;,citation_language=en;,citation_journal_title=Psychological Science;">
+<meta name="citation_reference" content="citation_title=Development of subcortical volumes across adolescence in males and females: A multisample study of longitudinal changes;,citation_author=Megan M. Herting;,citation_author=Cory Johnson;,citation_author=Kathryn L. Mills;,citation_author=Nandita Vijayakumar;,citation_author=Meg Dennison;,citation_author=Chang Liu;,citation_author=Anne-Lise Goddings;,citation_author=Ronald E. Dahl;,citation_author=Elizabeth R. Sowell;,citation_author=Sarah Whittle;,citation_author=Nicholas B. Allen;,citation_author=Christian K. Tamnes;,citation_publication_date=2018-05-15;,citation_cover_date=2018-05-15;,citation_year=2018;,citation_fulltext_html_url=http://www.sciencedirect.com/science/article/pii/S1053811918300211;,citation_doi=10.1016/j.neuroimage.2018.01.020;,citation_volume=172;,citation_journal_title=NeuroImage;">
+<meta name="citation_reference" content="citation_title=Meaningful associations in the adolescent brain cognitive development study;,citation_author=Anthony Steven Dick;,citation_author=Daniel A. Lopez;,citation_author=Ashley L. Watts;,citation_author=Steven Heeringa;,citation_author=Chase Reuter;,citation_author=Hauke Bartsch;,citation_author=Chun Chieh Fan;,citation_author=David N. Kennedy;,citation_author=Clare Palmer;,citation_author=Andrew Marshall;,citation_author=Frank Haist;,citation_author=Samuel Hawes;,citation_author=Thomas E. Nichols;,citation_author=Deanna M. Barch;,citation_author=Terry L. Jernigan;,citation_author=Hugh Garavan;,citation_author=Steven Grant;,citation_author=Vani Pariyadath;,citation_author=Elizabeth Hoffman;,citation_author=Michael Neale;,citation_author=Elizabeth A. Stuart;,citation_author=Martin P. Paulus;,citation_author=Kenneth J. Sher;,citation_author=Wesley K. Thompson;,citation_publication_date=2021-10-01;,citation_cover_date=2021-10-01;,citation_year=2021;,citation_fulltext_html_url=https://www.sciencedirect.com/science/article/pii/S1053811921005395;,citation_doi=10.1016/j.neuroimage.2021.118262;,citation_volume=239;,citation_journal_title=NeuroImage;">
+<meta name="citation_reference" content="citation_title=Evaluating Effect Size in Psychological Research: Sense and Nonsense;,citation_author=David C. Funder;,citation_author=Daniel J. Ozer;,citation_publication_date=2019-06-01;,citation_cover_date=2019-06-01;,citation_year=2019;,citation_fulltext_html_url=https://doi.org/10.1177/2515245919847202;,citation_issue=2;,citation_doi=10.1177/2515245919847202;,citation_volume=2;,citation_language=en;,citation_journal_title=Advances in Methods and Practices in Psychological Science;">
+<meta name="citation_reference" content="citation_title=Annual Research Review: Neural contributions to risk-taking in adolescence  developmental changes and individual differences;,citation_author=Eveline A. Crone;,citation_author=Anna C. K. Duijvenvoorde;,citation_author=Jiska S. Peper;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_fulltext_html_url=https://onlinelibrary.wiley.com/doi/abs/10.1111/jcpp.12502;,citation_issue=3;,citation_doi=10.1111/jcpp.12502;,citation_volume=57;,citation_language=en;,citation_journal_title=Journal of Child Psychology and Psychiatry;">
+<meta name="citation_reference" content="citation_title=A Neurocognitive Model of Self-Concept Development in Adolescence;,citation_author=Eveline A. Crone;,citation_author=Kayla H. Green;,citation_author=Ilse H. Groep;,citation_author=Renske Cruijsen;,citation_publication_date=2022-12-09;,citation_cover_date=2022-12-09;,citation_year=2022;,citation_fulltext_html_url=https://www.annualreviews.org/content/journals/10.1146/annurev-devpsych-120920-023842;,citation_issue=Volume 4, 2022;,citation_doi=10.1146/annurev-devpsych-120920-023842;,citation_volume=4;,citation_language=en;,citation_journal_title=Annual Review of Developmental Psychology;">
+<meta name="citation_reference" content="citation_title=The neural coding of feedback learning across child and adolescent development;,citation_author=Sabine Peters;,citation_author=Barbara R. Braams;,citation_author=Maartje E. J. Raijmakers;,citation_author=P. Cédric M. P. Koolschijn;,citation_author=Eveline A. Crone;,citation_publication_date=2014-02-24;,citation_cover_date=2014-02-24;,citation_year=2014;,citation_fulltext_html_url=https://doi.org/10.1162/jocn_a_00594;,citation_issue=8;,citation_doi=10.1162/jocn_a_00594;,citation_volume=26;,citation_journal_title=Journal of Cognitive Neuroscience;">
+<meta name="citation_reference" content="citation_title=Region of interest analysis using an SPM toolbox;,citation_author=Matthew Brett;,citation_author=Jean-Luc Anton;,citation_author=Romain Valabregue;,citation_author=Jean-Baptiste Poline;,citation_publication_date=2002-06-02;,citation_cover_date=2002-06-02;,citation_year=2002;,citation_issue=2;,citation_volume=16;,citation_language=en;,citation_journal_title=8th international conference on functional mapping of the human brain;">
+<meta name="citation_reference" content="citation_title=A meta-analysis of functional neuroimaging studies of self- and other judgments reveals a spatial gradient for mentalizing in medial prefrontal cortex;,citation_author=Bryan T. Denny;,citation_author=Hedy Kober;,citation_author=Tor D. Wager;,citation_author=Kevin N. Ochsner;,citation_publication_date=2012-08;,citation_cover_date=2012-08;,citation_year=2012;,citation_fulltext_html_url=https://ieeexplore.ieee.org/abstract/document/6794558;,citation_issue=8;,citation_doi=10.1162/jocn_a_00233;,citation_volume=24;,citation_journal_title=Journal of Cognitive Neuroscience;">
+<meta name="citation_reference" content="citation_title=Friend versus foe: Neural correlates of prosocial decisions for liked and disliked peers;,citation_author=E. Schreuders;,citation_author=E. T. Klapwijk;,citation_author=G. J. Will;,citation_author=B. Guroglu;,citation_publication_date=2018-01-09;,citation_cover_date=2018-01-09;,citation_year=2018;,citation_doi=10.3758/s13415-017-0557-1;,citation_journal_title=Cogn Affect Behav Neurosci;">
+<meta name="citation_reference" content="citation_title=R: A language and environment for statistical computing;,citation_author=R Core Team;,citation_publication_date=2023;,citation_cover_date=2023;,citation_year=2023;,citation_fulltext_html_url=https://www.R-project.org/;">
+</head>
+
+<body>
+
+<header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Sample size estimation for task-related functional MRI studies using Bayesian updating</h1>
+          </div>
+
+    
+    <div class="quarto-title-meta-container">
+      <div class="quarto-title-meta-column-start">
+            <div class="quarto-title-meta-author">
+          <div class="quarto-title-meta-heading">Authors</div>
+          <div class="quarto-title-meta-heading">Affiliations</div>
+          
+                <div class="quarto-title-meta-contents">
+            <p class="author">Eduard T. Klapwijk <a href="mailto:et.klapwijk@gmail.com" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> <a href="https://orcid.org/0000-0002-8936-0365" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+          </div>
+                <div class="quarto-title-meta-contents">
+                    <p class="affiliation">
+                        Erasmus University Rotterdam, Netherlands
+                      </p>
+                  </div>
+                      <div class="quarto-title-meta-contents">
+            <p class="author">Joran Jongerling <a href="https://orcid.org/0000-0001-5697-1381" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+          </div>
+                <div class="quarto-title-meta-contents">
+                    <p class="affiliation">
+                        Tilburg University, Netherlands
+                      </p>
+                  </div>
+                      <div class="quarto-title-meta-contents">
+            <p class="author">Herbert Hoijtink <a href="https://orcid.org/0000-0001-8509-1973" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+          </div>
+                <div class="quarto-title-meta-contents">
+                    <p class="affiliation">
+                        Utrecht University, Netherlands
+                      </p>
+                  </div>
+                      <div class="quarto-title-meta-contents">
+            <p class="author">Eveline A. Crone <a href="https://orcid.org/0000-0002-7508-6078" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+          </div>
+                <div class="quarto-title-meta-contents">
+                    <p class="affiliation">
+                        Erasmus University Rotterdam, Netherlands
+                      </p>
+                    <p class="affiliation">
+                        Leiden University, Netherlands
+                      </p>
+                  </div>
+                    </div>
+        
+        <div class="quarto-title-meta">
+
+                      
+                <div>
+            <div class="quarto-title-meta-heading">Published</div>
+            <div class="quarto-title-meta-contents">
+              <p class="date">June 19, 2024</p>
+            </div>
+          </div>
+          
+                
+              </div>
+      </div>
+      <div class="quarto-title-meta-column-end quarto-other-formats-target">
+      <div class="quarto-alternate-formats"><div class="quarto-title-meta-heading">Other Formats</div><div class="quarto-title-meta-contents"><p><a href="sample-size-fmri-paper.docx"><i class="bi bi-file-word"></i>MS Word</a></p></div><div class="quarto-title-meta-contents"><p><a href="sample-size-fmri-paper.pdf"><i class="bi bi-file-pdf"></i>PDF</a></p></div><div class="quarto-title-meta-contents"><p><a href="sample-size-fmri-paper-meca.zip" data-meca-link="true"><i class="bi bi-archive"></i>MECA Bundle</a></p></div></div></div>
+    </div>
+
+    <div>
+      <div class="abstract">
+        <div class="block-title">Abstract</div>
+        <p>Task-related functional MRI (fMRI) studies need to be properly powered with an adequate sample size to reliably detect effects of interest. But for most fMRI studies, it is not straightforward to determine a proper sample size using power calculations based on published effect sizes. Here, we present an alternative approach of sample size estimation with empirical Bayesian updating. First, this method provides an estimate of the required sample size using existing data from a similar task and similar region of interest. Using this estimate researchers can plan their research project, and report empirically determined sample size estimations in their research proposal or pre-registration. Second, researchers can expand the sample size estimations with new data. We illustrate this approach using four existing fMRI data sets where Cohen’s d is the effect size of interest for the hemodynamic response in the task condition of interest versus a control condition, and where a Pearson correlation between task effect and age is the covariate of interest. We show that sample sizes to reliably detect effects differ between various tasks and regions of interest. We provide an R package to allow researchers to use Bayesian updating with other task-related fMRI studies.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="keywords">
+        <div class="block-title">Keywords</div>
+        <p>power analysis, region of interest, effect size, R package, sample sizes, Bayesian updating</p>
+      </div>
+    </div>
+
+    <div class="quarto-other-links-text-target">
+    </div>  </div>
+</header><div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a>
+  <ul class="collapse">
+  <li><a href="#bayesian-updating" id="toc-bayesian-updating" class="nav-link" data-scroll-target="#bayesian-updating"><span class="header-section-number">1.1</span> Bayesian updating</a>
+  <ul class="collapse">
+  <li><a href="#the-highest-density-credible-interval-hdci" id="toc-the-highest-density-credible-interval-hdci" class="nav-link" data-scroll-target="#the-highest-density-credible-interval-hdci"><span class="header-section-number">1.1.1</span> The highest density credible interval (HDCI)</a></li>
+  </ul></li>
+  <li><a href="#sample-size-determination" id="toc-sample-size-determination" class="nav-link" data-scroll-target="#sample-size-determination"><span class="header-section-number">1.2</span> Sample Size Determination</a></li>
+  <li><a href="#neuroup-r-package" id="toc-neuroup-r-package" class="nav-link" data-scroll-target="#neuroup-r-package"><span class="header-section-number">1.3</span> <em>neuroUp</em> R package</a></li>
+  </ul></li>
+  <li><a href="#method-materials" id="toc-method-materials" class="nav-link" data-scroll-target="#method-materials"><span class="header-section-number">2</span> Method &amp; Materials</a>
+  <ul class="collapse">
+  <li><a href="#data-and-processing" id="toc-data-and-processing" class="nav-link" data-scroll-target="#data-and-processing"><span class="header-section-number">2.1</span> Data and processing</a>
+  <ul class="collapse">
+  <li><a href="#braintime-study" id="toc-braintime-study" class="nav-link" data-scroll-target="#braintime-study"><span class="header-section-number">2.1.1</span> BrainTime study</a></li>
+  <li><a href="#self-concept-study" id="toc-self-concept-study" class="nav-link" data-scroll-target="#self-concept-study"><span class="header-section-number">2.1.2</span> Self-Concept study</a></li>
+  <li><a href="#fmri-analysis" id="toc-fmri-analysis" class="nav-link" data-scroll-target="#fmri-analysis"><span class="header-section-number">2.1.3</span> fMRI analysis</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">3</span> Results</a>
+  <ul class="collapse">
+  <li><a href="#task-effects-using-cohens-d" id="toc-task-effects-using-cohens-d" class="nav-link" data-scroll-target="#task-effects-using-cohens-d"><span class="header-section-number">3.1</span> Task effects using Cohen’s d</a></li>
+  <li><a href="#pearson-correlations-between-task-effects-and-age" id="toc-pearson-correlations-between-task-effects-and-age" class="nav-link" data-scroll-target="#pearson-correlations-between-task-effects-and-age"><span class="header-section-number">3.2</span> Pearson correlations between task effects and age</a></li>
+  </ul></li>
+  <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion"><span class="header-section-number">4</span> Discussion</a>
+  <ul class="collapse">
+  <li><a href="#practical-recommendations" id="toc-practical-recommendations" class="nav-link" data-scroll-target="#practical-recommendations"><span class="header-section-number">4.0.1</span> Practical recommendations</a></li>
+  </ul></li>
+  <li><a href="#acknowledgments" id="toc-acknowledgments" class="nav-link" data-scroll-target="#acknowledgments"><span class="header-section-number">5</span> Acknowledgments</a>
+  <ul class="collapse">
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="notebooks/figures-cohens_d-preview.html"><i class="bi bi-journal-code"></i>Code to create Figures 1 and 2</a></li><li><a href="notebooks/figures-correlations-preview.html"><i class="bi bi-journal-code"></i>Code to create Figures 3 and 4</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+  
+
+
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>Since the emergence of functional magnetic resonance imaging (fMRI), these techniques have provided unprecedented opportunities to study functional brain development during childhood and adolescence by scanning children from the age of four years onward. There is great progression in the assessment of neural functional growth using cross-sectional and longitudinal assessments of cognitive, social and affective processes across the full range of childhood to adulthood. Despite the advancements in the ability to study the developing brain in vivo using fMRI, recent years have seen an increased concern about the replicability of scientific findings in general and particularly in psychology and cognitive neuroscience <span class="citation" data-cites="bishop2019 klapwijk2021 munafò2017 poldrack2017 marek2022">(<a href="#ref-bishop2019" role="doc-biblioref">Bishop 2019</a>; <a href="#ref-klapwijk2021" role="doc-biblioref">E. T. Klapwijk et al. 2021</a>; <a href="#ref-munafò2017" role="doc-biblioref">Munafò et al. 2017</a>; <a href="#ref-poldrack2017" role="doc-biblioref">Poldrack et al. 2017</a>; see <a href="#ref-marek2022" role="doc-biblioref">Marek et al. 2022</a> for a similar concern for resting-state functional connectivity and structural MRI data sets)</span>.</p>
+<p>Low statistical power due to small sample sizes is arguably one of the main reasons for lower than desired replicability of study results. Statistical power is the probability that a study will reject the null hypothesis when it is false, that is, when there is a non-zero effect (e.g., Cohen’s d or Pearson’s correlation) in the population of interest. Power is determined by the size of the effect, the alpha level chosen, and the size of the sample <span class="citation" data-cites="cohen1992">(<a href="#ref-cohen1992" role="doc-biblioref">Cohen 1992</a>)</span>. The smaller each of effect size, alpha level, and sample size are, the lower the power. Since many psychological phenomena consist of relatively subtle, small effects <span class="citation" data-cites="funder2019 gignac2016 yarkoni2009">(<a href="#ref-funder2019" role="doc-biblioref">Funder and Ozer 2019</a>; <a href="#ref-gignac2016" role="doc-biblioref">Gignac and Szodorai 2016</a>; <a href="#ref-yarkoni2009" role="doc-biblioref">Yarkoni 2009</a>)</span>, the main source for increasing power, and over which researchers have a reasonable degree of control, is the sample size (given limited flexibility of the alpha level). Despite the need for well-powered studies to reliably detect effects of interest, empirical reports have shown that most cognitive neuroscience and fMRI studies are underpowered due to small sample sizes <span class="citation" data-cites="button2013 maxwell2004 nord2017 poldrack2017 szucs2017 turner2018">(<a href="#ref-button2013" role="doc-biblioref">Button et al. 2013</a>; <a href="#ref-maxwell2004" role="doc-biblioref">Maxwell 2004</a>; <a href="#ref-nord2017" role="doc-biblioref">Nord et al. 2017</a>; <a href="#ref-poldrack2017" role="doc-biblioref">Poldrack et al. 2017</a>; <a href="#ref-szucs2017" role="doc-biblioref">Szucs and Ioannidis 2017</a>; <a href="#ref-turner2018" role="doc-biblioref">Turner et al. 2018</a>)</span>. With developmental populations, sufficiently large sample sizes might be even harder to establish because of the challenges in recruitment and testing of young participants <span class="citation" data-cites="achterberg2019 klapwijk2021">(<a href="#ref-achterberg2019" role="doc-biblioref">Achterberg and Meulen 2019</a>; <a href="#ref-klapwijk2021" role="doc-biblioref">E. T. Klapwijk et al. 2021</a>)</span>.</p>
+<p>Recently, well-coordinated efforts and funding have led to several large-scale projects that collect developmental task-related fMRI data with larger sample sizes. These projects have the potential to resolve the problem of power with sample sizes in the thousands, such as the IMAGEN study (<span class="math inline">\(N ≈ 2,000\)</span>) <span class="citation" data-cites="schumann2010">(<a href="#ref-schumann2010" role="doc-biblioref">Schumann et al. 2010</a>)</span>, the Philadelphia Neurodevelopmental Cohort (<span class="math inline">\(N ≈ 1,000\)</span>) <span class="citation" data-cites="satterthwaite2016">(<a href="#ref-satterthwaite2016" role="doc-biblioref">Satterthwaite et al. 2016</a>)</span>, the Human Connectome Project in Development (HCP-D; <span class="math inline">\(N ≈ 1,300\)</span>) <span class="citation" data-cites="somerville2018">(<a href="#ref-somerville2018" role="doc-biblioref">Somerville et al. 2018</a>)</span>, and the Adolescent Brain Cognitive Development (ABCD) study (<span class="math inline">\(N ≈ 11,000\)</span>) <span class="citation" data-cites="casey2018">(<a href="#ref-casey2018" role="doc-biblioref">Casey et al. 2018</a>)</span>. The leap forward made with this wealth of high-powered, mostly publicly available data can hardly be overstated, given that they provide an important open research tool for researchers across the globe.</p>
+<p>However, most fMRI studies are carried out by individual research groups in much smaller samples, which have more opportunities to pursue new scientific questions, for example using novel paradigms. It is also vital that the findings of such studies are replicable and meaningful, meaning that these studies should be properly powered, also without sample sizes in the range of large multi-lab studies. The main issue with power analysis is that the effect size in the population of interest is unknown. One option is to use effect sizes reported in the literature of the research area at hand. But these effect sizes are often inflated due to publication bias <span class="citation" data-cites="gelman2014 ioannidis2005 opensciencecollaboration2015 wicherts2016 yarkoni2009">(<a href="#ref-gelman2014" role="doc-biblioref">Gelman and Carlin 2014</a>; <a href="#ref-ioannidis2005" role="doc-biblioref">Ioannidis 2005</a>; <a href="#ref-opensciencecollaboration2015" role="doc-biblioref">Open Science Collaboration 2015</a>; <a href="#ref-wicherts2016" role="doc-biblioref">Wicherts et al. 2016</a>; <a href="#ref-yarkoni2009" role="doc-biblioref">Yarkoni 2009</a>)</span>. Therefore, calculating power based on published effect sizes usually underestimates the sample size needed to reliably detect an effect.</p>
+<p>This paper will present a novel method to determine the required sample size for fMRI studies based on existing (i.e., already collected) data using Bayesian updating <span class="citation" data-cites="rouder2014">(<a href="#ref-rouder2014" role="doc-biblioref">Rouder 2014</a>)</span>. Specifically, the approach will determine the proportion of the already collected data that is needed to get a desired credible interval (the Bayesian counterpart of the confidence interval). This will provide an estimate of the percentage of cases for which the credible interval is expected to be in the desired range (e.g., the interval should <em>not</em> contain the value 0 for the parameter of interest). This in turn gives us an estimate of the sample size needed for a certain level of power. The current paper will provide examples (including an R package) for two effect sizes: Cohen’s d and Pearson’s correlation. The sample size determined using existing data is valuable when designing a new research project and when justifying sample sizes in a pre-registration or in proposals send to a (medical) ethical committee.</p>
+<p>We will illustrate sample size determination using existing data sets and tasks that are currently widely used in the developmental fMRI literature, specifically cognitive control, reward activity, and social-cognitive processing (see <a href="#tbl-1" class="quarto-xref">Table&nbsp;1</a> for an overview) based on existing data from our own lab. It will be determined how large the sample size should be to detect Cohen’s d, such that 95% does not contain the value zero for a specific condition effect (e.g., brain activity during feedback processing versus rule application). Most prior developmental fMRI studies addressed the question whether an effect linearly increases or decreases with age <span class="citation" data-cites="crone2017">(<a href="#ref-crone2017" role="doc-biblioref">Crone and Steinbeis 2017</a>)</span>. We therefore also determine the sample size needed to detect a Pearson correlation of an effect with linear age that is larger than zero. In the next sections, we will first introduce Bayesian updating, the highest density credible interval, and sample size determination. Next, we will provide examples using existing data from four fMRI studies <span class="citation" data-cites="braams2014 peters2017 spaans2023 vandercruijsen2023">(<a href="#ref-braams2014" role="doc-biblioref">Braams et al. 2014</a>; <a href="#ref-peters2017" role="doc-biblioref">Peters and Crone 2017</a>; <a href="#ref-spaans2023" role="doc-biblioref">Spaans et al. 2023</a>; <a href="#ref-vandercruijsen2023" role="doc-biblioref">Cruijsen et al. 2023</a>)</span>, and illustrate sample size determination using these examples.</p>
+<section id="bayesian-updating" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="bayesian-updating"><span class="header-section-number">1.1</span> Bayesian updating</h2>
+<p>Bayesian updating can be used to determine the sample size required to estimate Cohen’s d or Pearson’s correlation with a certain precision. Precision is presented in the form of a 95% highest density credible interval (HDCI), that is, the narrowest possible interval that is believed to contain the true value of the parameter of interest with a probability of .95<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. The narrower this interval, the higher the precision with which the parameter is estimated.</p>
+<p>Bayesian updating as implemented here relies on the assumption that a priori, that is, before collecting the data, each possible value of the parameter of interest is equally likely. This has two implications. First, the HDCI is completely determined by the data and not by prior information. Secondly, the numerical values of the estimate and endpoints of the HDCI are equal to the estimate and endpoints of the classical confidence interval.</p>
+<p>Bayesian updating can be used to determine the smallest sample size for which the resulting HDCI does not contain the value zero. Bayesian updating consists of four steps:</p>
+<ol type="1">
+<li><p>Determine the maximum achievable size of the sample.</p></li>
+<li><p>Collect the data for an initial number of participants and then compute the estimate and HDCI. The actual number chosen is irrelevant, but with 20 participants the estimate and HDCI will usually give a first impression of the size of Cohen’s d or Pearson’s correlation that is not totally determined by sample fluctuations and/or outliers.</p></li>
+<li><p>Add several participants to the sample (updating) and recompute the estimate and HDCI.</p></li>
+<li><p>If the HDCI still contains the value zero and the maximum achievable sample size has not been obtained, return to the previous step. Otherwise, the updating is finished and estimates and corresponding HDCI’s are reported.</p></li>
+</ol>
+<section id="the-highest-density-credible-interval-hdci" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" class="anchored" data-anchor-id="the-highest-density-credible-interval-hdci"><span class="header-section-number">1.1.1</span> The highest density credible interval (HDCI)</h3>
+<p>It is important to highlight that the HDCI is not a confidence interval. If many data sets are sampled from the population of interest and each data set is used to compute the 95% confidence interval for the parameter of interest, then it holds that 95% of the intervals contain the true value. However, in contrast to HDCIs, confidence intervals cannot be updated because their coverage level will become smaller than 95%. This will be illustrated using a simple example.</p>
+<p>Imagine many researchers want to show that Cohen’s d is unequal to zero. Each of them samples a data set with <span class="math inline">\(n = 20\)</span> for each group from the population of interest (in which Cohen’s d happens to equal zero). About 5% of the 95% confidence intervals do not contain the value 0. These researchers will not continue their efforts; they have “shown” that “their” effect is not zero. At this stage the Type I error rate is .05. However, the 95% remaining researchers increase their power by updating their data with another 10 persons per group and recompute their 95% confidence intervals of which about 2.8% (number determined using simulation) does not contain the value 0. Therefore, the Type I error rate is increased to 5% + 2.8% = 7.8%, that is, the updating rendered 92.2% confidence intervals and not 95% confidence intervals.</p>
+<p>A HDCI should therefore not be interpreted in the context of many hypothetical data sets sampled from the population of interest. The HDCI is computed using the observed data at hand and is the shortest interval that is believed to contain the true value of Cohen’s d with a probability of .95. When updating, the size of the data at hand becomes larger, the information with respect to Cohen’s d increases, and therefore the width of the HDCI becomes smaller. The HDCI summarizes the evidence in the data at hand with respect to the size of Cohen’s d, which is different from a confidence interval which aims to control error rates under (hypothetical) repeated sampling from the same population.</p>
+</section>
+</section>
+<section id="sample-size-determination" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="sample-size-determination"><span class="header-section-number">1.2</span> Sample Size Determination</h2>
+<p>The procedure elaborated in this paper is Bayesian (because HDCIs are used) empirical (because existing data are used) sample size determination. We use an existing dataset of a certain size, and for all sample sizes between a minimum (e.g., <span class="math inline">\(n = 20\)</span>) and maximum sample size of the sample at hand we compute the HDCI. To account for the arbitrary order of the participant in a data set, this is done for a set number of permutations, e.g., 1000, of the participants in the data set. For each sample size, we then calculate the average HDCI of all permutations. Considering both the average HDCI and the HDCI’s resulting from the different permutations, will provide an estimate sample size needed to obtain a 95% HDCI . The 95% HDCI for Cohen’s d was established through non-parametric bootstrapping <span class="citation" data-cites="efron1994">(<a href="#ref-efron1994" role="doc-biblioref">Efron and Tibshirani 1994</a>)</span>. Specifically, we resampled the current subset of data 100 times and calculated Cohen’s d for the difference between variable x and variable y each time. We then calculated the mean and standard deviations of Cohen’s d across the 100 resampled values. The 95% CI was determined by subtracting 1.96 times the standard deviation of the Cohen’s d values from the mean Cohen’s d value, and by adding 1.96 times the standard deviation of the Cohen’s d values to the mean Cohen’s d value.</p>
+<p>To illustrate the current method, we can take a preview at <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> C in the Results section. The dataset used to construct HDCI’s for Cohen’s d consists of 149 participants from the self-evaluation versus control contrast in the medial prefrontal cortex during a self-evaluation task. In <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> C the first 20 participants in each of 1000 permuted data sets are used to compute the HDCI for Cohen’s d.&nbsp;Ten of these intervals are displayed in blue. As can be seen, of the ten (of 1000) HDCIs displayed, four include the value zero. Consequently, fluctuations in the order in which participants are sampled determine whether the HDCI contains the value zero. This is summarized in <a href="#fig-2" class="quarto-xref">Figure&nbsp;2</a> C which shows that the probability that one of the 1000 HDCIs does not contain the value zero is about 0.6 for <span class="math inline">\(n = 20\)</span>. In <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> C, it is shown in the first interval displayed in purple that the average of the 1000 HDCI’s does not contain the value zero. Therefore, although the average interval does not contain the value zero, we can learn from the permutations that when using 20 participants it is still rather likely that the resulting interval will include the value zero. This becomes much less likely for the samples of 46 and 72 participants. With these sample sizes neither the HDCIs nor the average interval contain the value zero (see <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> C). Additionally, the probability that an interval does not contain the value zero equals 100% for 72 participants (see <a href="#fig-2" class="quarto-xref">Figure&nbsp;2</a> C). Therefore, a sample size of 72 and higher will usually render intervals that do not contain the value zero.</p>
+<p>An issue that sample size determination has in common with power analysis, is that the effect size in the existing data set will very likely differ from the effect size in the population that will be addressed in the study being designed. However, sample size determination does not suffer from the fact that effect sizes reported in the literature tend to be inflated (like power analysis) because effect sizes are straightforwardly computed from actual data. The determined sample size is therefore an estimate of the required sample size. This estimate is valuable because it allows researchers to plan their research project, can be reported in their research proposal or pre-registration, and it may lead to the conclusion that the sample size needed cannot be achieved with the resources that you have at your disposal.</p>
+<p>In the next section Bayesian empirical sample size determination will be exemplified and discussed using different fMRI tasks from the BrainTime <span class="citation" data-cites="braams2014 peters2017">(<a href="#ref-braams2014" role="doc-biblioref">Braams et al. 2014</a>; <a href="#ref-peters2017" role="doc-biblioref">Peters and Crone 2017</a>)</span> and Self-Concept <span class="citation" data-cites="spaans2023 vandercruijsen2023">(<a href="#ref-spaans2023" role="doc-biblioref">Spaans et al. 2023</a>; <a href="#ref-vandercruijsen2023" role="doc-biblioref">Cruijsen et al. 2023</a>)</span> data sets.</p>
+</section>
+<section id="neuroup-r-package" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="neuroup-r-package"><span class="header-section-number">1.3</span> <em>neuroUp</em> R package</h2>
+<p>The code for Bayesian updating in this manuscript is implemented in the R language for statistical computing <span class="citation" data-cites="rcore">(<a href="#ref-rcore" role="doc-biblioref">R Core Team 2023</a>)</span>. We currently provide the <em>neuroUp</em> package at the following location: <a href="https://github.com/eduardklap/neuroUp" class="uri">https://github.com/eduardklap/neuroUp</a> <span class="citation" data-cites="eduardklapwijk202411526169">(<a href="#ref-eduardklapwijk202411526169" role="doc-biblioref">E. Klapwijk, Hoijtink, and Jongerling 2024</a>)</span>. This package is built on several packages from the tidyverse <span class="citation" data-cites="wickham2019">(<a href="#ref-wickham2019" role="doc-biblioref">Wickham et al. 2019</a>)</span>, most notably <em>ggplot2</em>. The package can be installed using the R commands: <code>library(devtools)</code> and <code>install_github("eduardklap/neuroUp")</code>. All data used in the current manuscript is also available within the <em>neuroUp</em> package, in this way all figures in the manuscript can be reproduced using the R package. For a more elaborate introduction to <em>neuroUp</em> and its functions, please refer to <a href="https://eduardklap.github.io/neuroUp/articles/neuroUp.html" class="uri">https://eduardklap.github.io/neuroUp/articles/neuroUp.html</a>. To cite package neuroUp in publications use <span class="citation" data-cites="eduardklapwijk202411526169">E. Klapwijk, Hoijtink, and Jongerling (<a href="#ref-eduardklapwijk202411526169" role="doc-biblioref">2024</a>)</span>.</p>
+</section>
+</section>
+<section id="method-materials" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Method &amp; Materials</h1>
+<p>We focus on sample size estimation for regions of interest from four different fMRI tasks in two different samples (see <a href="#tbl-1" class="quarto-xref">Table&nbsp;1</a>). We re-used data that has been processed with SPM8 or SPM12 and derived summary statistics for individual participants for regions and task conditions of interest (see fMRI processing).</p>
+<div id="tbl-1" class="quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Overview of tasks processed in the current study.
+</figcaption>
+<div aria-describedby="tbl-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>task</th>
+<th>source</th>
+<th>associated papers</th>
+<th>N</th>
+<th>age range</th>
+<th>cognitive process</th>
+<th>region of interest</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Feedback</td>
+<td>BrainTime study, Leiden University</td>
+<td><span class="citation" data-cites="peters2017 crone2016">(<a href="#ref-peters2017" role="doc-biblioref">Peters and Crone 2017</a>; <a href="#ref-crone2016" role="doc-biblioref">Crone, Duijvenvoorde, and Peper 2016</a>)</span></td>
+<td>271</td>
+<td>8-25 yrs</td>
+<td>feedback learning</td>
+<td>DLPFC</td>
+</tr>
+<tr class="even">
+<td>Gambling</td>
+<td>BrainTime study, Leiden University</td>
+<td><span class="citation" data-cites="braams2014 crone2016">(<a href="#ref-braams2014" role="doc-biblioref">Braams et al. 2014</a>; <a href="#ref-crone2016" role="doc-biblioref">Crone, Duijvenvoorde, and Peper 2016</a>)</span></td>
+<td>221</td>
+<td>12-28 yrs</td>
+<td>reward-processing</td>
+<td>NAcc</td>
+</tr>
+<tr class="odd">
+<td>Self-evaluations</td>
+<td>Self-Concept study, Leiden University</td>
+<td><span class="citation" data-cites="vandercruijsen2023 crone2022">(<a href="#ref-vandercruijsen2023" role="doc-biblioref">Cruijsen et al. 2023</a>; <a href="#ref-crone2022" role="doc-biblioref">Crone et al. 2022</a>)</span></td>
+<td>149</td>
+<td>11-21 yrs</td>
+<td>self processing</td>
+<td>mPFC</td>
+</tr>
+<tr class="even">
+<td>Vicarious charity</td>
+<td>Self-Concept study, Leiden University</td>
+<td><span class="citation" data-cites="spaans2023 crone2022">(<a href="#ref-spaans2023" role="doc-biblioref">Spaans et al. 2023</a>; <a href="#ref-crone2022" role="doc-biblioref">Crone et al. 2022</a>)</span></td>
+<td>156</td>
+<td>11-21 yrs</td>
+<td>vicarious rewards</td>
+<td>NAcc</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<section id="data-and-processing" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="data-and-processing"><span class="header-section-number">2.1</span> Data and processing</h2>
+<section id="braintime-study" class="level3" data-number="2.1.1">
+<h3 data-number="2.1.1" class="anchored" data-anchor-id="braintime-study"><span class="header-section-number">2.1.1</span> BrainTime study</h3>
+<p>The BrainTime study is an accelerated longitudinal research project of normative development. A total of 299 participants between ages 8 and 25 years took part in MRI scanning at the first time point. At the second time point approximately 2 years later, 254 participants were scanned (most dropout was due to braces, <span class="math inline">\(n = 33\)</span>). At time point 3, approximately 2 years after time point 2, 243 participants were scanned (dropout due to braces: <span class="math inline">\(n = 11\)</span>). The same Philips 3T MRI scanner and settings were used for all time points. The following settings were used: TR = <span class="math inline">\(2200 ms\)</span>, TE = <span class="math inline">\(30 ms\)</span>, sequential acquisition, 38 slices, slice thickness = <span class="math inline">\(2.75 mm\)</span>, field of view (FOV) = <span class="math inline">\(220 × 220 × 114.68 mm\)</span>. A high-resolution 3D T1 anatomical scan was acquired (TR = <span class="math inline">\(9.76 ms\)</span>, TE = <span class="math inline">\(4.59 ms\)</span>, 140 slices, voxel size = <span class="math inline">\(0.875 × 0.875 × 1.2 mm\)</span>, FOV = <span class="math inline">\(224 × 177 × 168 mm\)</span>).</p>
+<section id="feedback-task" class="level4" data-number="2.1.1.1">
+<h4 data-number="2.1.1.1" class="anchored" data-anchor-id="feedback-task"><span class="header-section-number">2.1.1.1</span> Feedback task</h4>
+<p>For the feedback task <span class="citation" data-cites="peters2014">(<a href="#ref-peters2014" role="doc-biblioref">Peters et al. 2014</a>)</span> we included 271 participants at time point 1 from which region of interest data was available. We use the same data and processing as reported in <span class="citation" data-cites="peters2017">(<a href="#ref-peters2017" role="doc-biblioref">Peters and Crone 2017</a>)</span>. During the task, on each trial participants viewed three squares with a stimulus presented underneath. Participants were instructed to use performance feedback to determine which stimulus belonged to which square. After each choice, feedback was presented to the participant: a minus sign for negative feedback or a plus sign for positive feedback. After 12 trials, or when a criterion was reached (placing each of the three stimuli in the correct box at least two times), a new sequence with three new stimuli was presented. This criterion was used to strike a balance between the number of trials in the learning and the application phase. There were 15 sequences in total, resulting in a maximum of <span class="math inline">\(15 x 12 = 180\)</span> trials per participant. For the current study, we focused on the learning &gt; application contrast, which compares feedback early in the learning process with feedback for associations that were already learned (i.e.&nbsp;application phase). Individual trial-by-trial analyses were used to determine the learning and application phase (see <span class="citation" data-cites="peters2017">Peters and Crone (<a href="#ref-peters2017" role="doc-biblioref">2017</a>)</span> for details).</p>
+</section>
+<section id="gambling-task" class="level4" data-number="2.1.1.2">
+<h4 data-number="2.1.1.2" class="anchored" data-anchor-id="gambling-task"><span class="header-section-number">2.1.1.2</span> Gambling task</h4>
+<p>For the Gambling task <span class="citation" data-cites="braams2014">(<a href="#ref-braams2014" role="doc-biblioref">Braams et al. 2014</a>)</span>, we used data from 221 participant at time point 3 (we went for the largest sample size and this was the time point with the most data available for the contrasts of interest). We use the same data and processing as reported in <span class="citation" data-cites="schreuders2018">Schreuders et al. (<a href="#ref-schreuders2018" role="doc-biblioref">2018</a>)</span>. In the Gambling task, participants could choose heads or tails and win money when the computer selected the chosen side of the coin or lose money when the opposite side was selected. Chances of winning were 50%. To keep participants engaged, the number of coins that could be won or lost on varied across trials. Participants were explained that the coins won in the task would translate to real money, to be paid out at the end of the experiment. Gambling was performed in two different conditions: participants played 23 trials for themselves, and 22 trials for their best friend. For the current study, we focused on reward processing by analysing the winning for self &gt; losing for self contrast.</p>
+</section>
+</section>
+<section id="self-concept-study" class="level3" data-number="2.1.2">
+<h3 data-number="2.1.2" class="anchored" data-anchor-id="self-concept-study"><span class="header-section-number">2.1.2</span> Self-Concept study</h3>
+<p>The Self-Concept study is a cohort-sequential longitudinal study in which 160 adolescents from 11 to 21 years old took part at the first time point (see <a href="https://osf.io/h7u46" class="uri">https://osf.io/h7u46</a> for study overview). MRI scans were acquired on a Philips 3T MRI scanner with the following settings: TR = <span class="math inline">\(2200 ms\)</span>, TE = <span class="math inline">\(30 ms\)</span>, sequential acquisition, 37 slices, slice thickness = <span class="math inline">\(2.75 mm\)</span>, FOV = <span class="math inline">\(220 × 220 × 111.65 mm\)</span>. A high-resolution 3D T1 anatomical scan was acquired (TR = <span class="math inline">\(9.8 ms\)</span>, TE = <span class="math inline">\(4.6 ms\)</span>, 140 slices, voxel size = <span class="math inline">\(0.875 × 0.875 × 1.2 mm\)</span>, FOV = <span class="math inline">\(224 × 178.5 × 168 mm\)</span>).</p>
+<section id="self-evaluations-task" class="level4" data-number="2.1.2.1">
+<h4 data-number="2.1.2.1" class="anchored" data-anchor-id="self-evaluations-task"><span class="header-section-number">2.1.2.1</span> Self-evaluations task</h4>
+<p>For the Self-evaluation task we used the same data and processing as reported in <span class="citation" data-cites="vandercruijsen2023">Cruijsen et al. (<a href="#ref-vandercruijsen2023" role="doc-biblioref">2023</a>)</span>. In this task, participants read 60 short sentences describing positive or negative traits in the academic, physical, or prosocial domain (20 per domain; 10 with a positive valence and 10 with a negative valence). Here we focus on the direct self-evaluation condition, in which participants had to indicate to what extent the trait sentences applied to them on a scale of 1 (‘not at all’) to 4 (‘completely’). In the control condition, participants had to categorize 20 other trait sentences according to four categories: (1) school, (2) social, (3) appearance, or (4) I don’t know. For the current study, we focused on the direct self-evaluation versus control contrast. Eleven participants were excluded due to excessive motion during scanning (<span class="math inline">\(\&gt;3 mm, n = 8\)</span>), not completing the scan (<span class="math inline">\(n = 1\)</span>), and a technical error (<span class="math inline">\(n = 2\)</span>), resulting in a total sample of <span class="math inline">\(N = 149\)</span>.</p>
+</section>
+<section id="vicarious-charity-task" class="level4" data-number="2.1.2.2">
+<h4 data-number="2.1.2.2" class="anchored" data-anchor-id="vicarious-charity-task"><span class="header-section-number">2.1.2.2</span> Vicarious Charity task</h4>
+<p>For the Vicarious Charity task, we used the same data and processing as reported in <span class="citation" data-cites="spaans2023">Spaans et al. (<a href="#ref-spaans2023" role="doc-biblioref">2023</a>)</span>. In this task, participants could earn money for themselves and for a self-chosen charity they selected before scanning. On every trial, participants could choose one of two curtains to open. After their button press, the chosen curtain opened to show the division of the stake between themselves and the charity. The overall outcome was a division of either €4 or €2 between parties. Unknown to the participant, every outcome condition occurred 15 times during the task. Participants were informed beforehand that they received extra money based on the average of three random outcomes at the end of the research visit. Here we focus on the self-gain &gt; both-no-gain contrast. This contrast compares the 30 trials in which participants gained the full €4 or €2 themselves (i.e., €0 for charity) against 15 baseline trials in which no money was gained in total (i.e., €0 for self and €0 for charity). Two participants were excluded from the analysis due to excessive movement during scanning (<span class="math inline">\(&gt;3 mm\)</span>), one due to signal dropout in the SPM mask including the ventral striatum (this was assessed by visual inspection of all individual SPM masks), and one due to a technical error, resulting in a total of <span class="math inline">\(N = 156\)</span>.</p>
+</section>
+</section>
+<section id="fmri-analysis" class="level3" data-number="2.1.3">
+<h3 data-number="2.1.3" class="anchored" data-anchor-id="fmri-analysis"><span class="header-section-number">2.1.3</span> fMRI analysis</h3>
+<p>FMRI analyses for all four tasks were performed using SPM (Wellcome Department of Cognitive Neurology, London); SPM8 was used for the BrainTime data and SPM12 for the Self-Concept data. The following preprocessing steps were used: slice timing correction, realignment (motion correction), normalization, and smoothing (6 mm full-width at half maximum isotropic Gaussian kernel). T1 templates were based on the MNI305 stereotaxic space. All tasks have an event-related design and events were time-locked with 0 duration to the moment of feedback presentation. Six motion regressors were added to the model. All other trials (i.e., trials that did not result in learning in the Feedback task or too-late trials) were modeled as events of no interest. These events were used as covariates in a general linear model together with a set of cosine functions that high-pass filtered the data. The least-squares parameter estimates of height of the best-fitting canonical hemodynamic response function (HRF) for each condition were used in pair-wise contrasts. The contrast images were submitted to higher-level group analyses. Region of interest analyses were performed with the MarsBaR toolbox <span class="citation" data-cites="brett2002">(<a href="#ref-brett2002" role="doc-biblioref">Brett et al. 2002</a>)</span>.</p>
+<section id="regions-of-interest" class="level4" data-number="2.1.3.1">
+<h4 data-number="2.1.3.1" class="anchored" data-anchor-id="regions-of-interest"><span class="header-section-number">2.1.3.1</span> Regions of interest</h4>
+<p>For the Feedback task, the atlas-based middle frontal gyrus was used as a region of interest (Harvard-Oxford cortical atlas; thresholded at 50%; center-of-mass coordinates <span class="math inline">\(x = -4, y = 22, z = 43\)</span>). Extracted parameter estimates for this region were obtained in tabular format from the authors of <span class="citation" data-cites="peters2017">Peters and Crone (<a href="#ref-peters2017" role="doc-biblioref">2017</a>)</span>, with one value for the mean activation during learning and one value for the mean activation during application for all participants. For the Gambling task, the anatomical mask of the left nucleus accumbens was used as a region of interest (Harvard-Oxford subcortical atlas; thresholded at 40%; 28 voxels included). Extracted parameter estimates for this region were obtained in tabular format from the authors of <span class="citation" data-cites="schreuders2018">Schreuders et al. (<a href="#ref-schreuders2018" role="doc-biblioref">2018</a>)</span>, with one value for the mean activation during winning and one value for the mean activation during losing for all participants.</p>
+<p>For the Self-evaluation task, the region of interest used was a mask of the left medial prefrontal cortex (<span class="math inline">\(x = −6, y = 50, z = 4\)</span>) based on a meta-analysis by <span class="citation" data-cites="denny2012">Denny et al. (<a href="#ref-denny2012" role="doc-biblioref">2012</a>)</span>. Extracted parameter estimates for this region were obtained in tabular format from the authors of <span class="citation" data-cites="vandercruijsen2023">Cruijsen et al. (<a href="#ref-vandercruijsen2023" role="doc-biblioref">2023</a>)</span>, with one value for the mean activation during self-evaluation and one value for the mean activation during the control condition for all participants. For the Vicarious Charity task, the anatomical mask of the left nucleus accumbens was used as a region of interest (Harvard-Oxford subcortical atlas; thresholded at 40%; center-of-mass coordinates <span class="math inline">\(x = −10, y = 12, z = −7\)</span>; 28 voxels included). Extracted parameter estimates for this region were obtained in tabular format from the authors of <span class="citation" data-cites="spaans2023">Spaans et al. (<a href="#ref-spaans2023" role="doc-biblioref">2023</a>)</span>, with one value for the mean activation during gaining for self and one value for the mean activation during no-gain for self and charity for all participants.</p>
+</section>
+</section>
+</section>
+</section>
+<section id="results" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Results</h1>
+<section id="task-effects-using-cohens-d" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="task-effects-using-cohens-d"><span class="header-section-number">3.1</span> Task effects using Cohen’s d</h2>
+<p>The average HDCI was used to determine the optimal sample size for the four fMRI tasks used. For each task and brain region of interest, we estimated the sample size required to obtain an average HDCI for Cohen’s d not containing the value zero (<a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> and <a href="#fig-2" class="quarto-xref">Figure&nbsp;2</a>; <a href="#tbl-2" class="quarto-xref">Table&nbsp;2</a>). Additionally, we also established whether it was also the case that a majority of the 1000 underlying HDCIs did not contain the value zero.</p>
+<p>In <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> A, an estimate of the required sample size for feedback learning processing in the DLPFC (middle frontal gyrus) is presented. Five groups of HDCI’s are presented for sample sizes of 20, 70, 120, 170, and 271 persons, in which 271 is the total group sample size of the existing data set. As can be seen, already with a sample of 20 participants neither of the 10 permuted HDCIs displayed nor the average of the 1000 HDCI’s contain the value zero. In Figure 2A it can be seen that the proportion of HDCI’s not containing the value zero is equal to 1.0. This is due to the huge effect size of Cohen’s d equal to about 1.9 (see <a href="#tbl-2" class="quarto-xref">Table&nbsp;2</a>). Therefore, already with a sample size of 20 participants, an effect bigger than zero will be detected for this task and brain region.</p>
+<p>For the task effect of gambling (winning for self &gt; losing for self contrast) in the NAcc, we can see the results in <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> B. Here, with a sample of 20 participants the average of the 1000 HDCIs does not contain the value zero but some of the 10 HDCI’s displayed do. The proportion of HDCI’s not containing the value zero is bigger than 0.8 for 20 participants, but with 60 or more participants none of the 1000 HDCI’s contain zero anymore (Figure 2B). This is related to the large effect size of Cohen’s d equal to about 0.7 (see <a href="#tbl-2" class="quarto-xref">Table&nbsp;2</a>). Thus, for this task and brain region, already with a sample size of 20 participants chances are high that an effect bigger than zero will be detected. Using sample sizes of 60 or more participants from this existing data set increases the chances of detection to 100%.</p>
+<p>In <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> C, results are plotted for the self-evaluation task in the mPFC. We see that at a sample size of 20 some of the 10 HDCI’s displayed still contain the value 0, but not the average of the 1000 HDCI’s. The proportion of HDCI’s not containing the value 0 is also below 1.0, around 0.5, for this task at <span class="math inline">\(N=20\)</span> (Figure 2C). At the next step that is plotted for this task (<span class="math inline">\(n = 46\)</span>), we see that the proportion of HDCI’s not containing the value 0 is only a little below 1.0. Thus, for this task and brain region, at a sample size at 46 participants chances are high that an effect bigger than zero will be detected.</p>
+<p>The results of gaining for self in the NAcc are plotted in <a href="#fig-1" class="quarto-xref">Figure&nbsp;1</a> D. With a sample of 20 participants the average of the 1000 HDCI’s does not contain the value zero but some of the 10 HDCI’s displayed do. The proportion of HDCI’s not containing the value zero is around 0.75 (Figure 2D), but at <span class="math inline">\(n = 47\)</span> the proportion of HDCI’s not containing the value 0 is almost 1.0. Therefore, using 20 participants it is still likely that the resulting interval will include the value zero. This becomes much less likely for the samples of 47 and 74 persons. With these sample sizes neither the HDCIs nor the average interval contain the value zero. Additionally, the probability that an interval does not contain the value zero almost reaches 100%. Therefore, for this task and brain region, a sample size of 47 and higher will usually render intervals that do not contain the value zero.</p>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-1" class="cell" data-message="false" data-fig-height="6" data-fig-width="10">
+<div class="cell-output cell-output-display">
+<div id="fig-1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="sample-size-fmri-paper_files/figure-html/notebooks-figures-cohens_d-fig-1-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" data-glightbox="description: .lightbox-desc-1"><img src="sample-size-fmri-paper_files/figure-html/notebooks-figures-cohens_d-fig-1-output-1.png" width="960" height="576" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Estimates of task effects for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset). For each sample size 10 randomly chosen HDCI’s out of the 1000 HDCI’s computed are displayed (in light blue, permutation numbers used are displayed to the right of each subfigure). The average estimate with credible interval summarizing the 1000 HDCI’s for each sample size are plotted in reddish purple. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-1" href="notebooks/figures-cohens_d-preview.html#cell-fig-1">Source: Code to create Figures 1 and 2</a></div>
+<div id="tbl-2" class="quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Mean estimates (with credible interval in brackets) of Cohen’s d for five different sample sizes (starting with n=20, then 1/5th parts of the total dataset) of the 1000 HDCI’s. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens.
+</figcaption>
+<div aria-describedby="tbl-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>task</strong></th>
+<th><strong>brain region</strong></th>
+<th><strong>n = 20</strong></th>
+<th><strong>n = 2/5</strong></th>
+<th><strong>n = 3/5</strong></th>
+<th><strong>n = 4/5</strong></th>
+<th><strong>N = total</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Feedback</td>
+<td>DLPFC</td>
+<td><strong>2.03</strong> (1.29, 2.76)</td>
+<td><strong>1.89</strong> (1.54, 2.25), n = 70</td>
+<td><strong>1.88</strong> (1.62, 2.15), n = 120</td>
+<td><strong>1.87</strong> (1.65, 2.1), n = 170</td>
+<td><strong>1.87</strong> (1.69, 2.04), <em>N</em> = 271</td>
+</tr>
+<tr class="even">
+<td>Gambling</td>
+<td>NAcc</td>
+<td><strong>0.8</strong> (0.25, 1.34)</td>
+<td><strong>0.74</strong> (0.45, 1.03), n = 60</td>
+<td><strong>0.73</strong> (0.51, 0.96), n = 100</td>
+<td><strong>0.73</strong> (0.54, 0.92), n = 140</td>
+<td><strong>0.73</strong> (0.58, 0.88), <em>N</em> = 221</td>
+</tr>
+<tr class="odd">
+<td>Self-evaluations</td>
+<td>mPFC</td>
+<td><strong>0.5</strong> (0.02, 0.98)</td>
+<td><strong>0.47</strong> (0.17, 0.77), n = 46</td>
+<td><strong>0.46</strong> (0.22, 0.7), n = 72</td>
+<td><strong>0.46</strong> (0.26, 0.66), n = 98</td>
+<td><strong>0.46</strong> (0.29, 0.62), n = 149</td>
+</tr>
+<tr class="even">
+<td>Gaining self</td>
+<td>NAcc</td>
+<td><strong>0.64</strong> (0.14, 1.14)</td>
+<td><strong>0.59</strong> (0.27, 0.91), n = 47</td>
+<td><strong>0.58</strong> (0.32, 0.84), n = 74</td>
+<td><strong>0.58</strong> (0.36, 0.8), n = 101</td>
+<td><strong>0.57</strong> (0.39, 0.75), <em>N</em> = 156</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-2" class="cell" data-message="false" data-fig-height="6" data-fig-width="10">
+<div class="cell-output cell-output-display">
+<div id="fig-2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="sample-size-fmri-paper_files/figure-html/notebooks-figures-cohens_d-fig-2-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" data-glightbox="description: .lightbox-desc-2"><img src="sample-size-fmri-paper_files/figure-html/notebooks-figures-cohens_d-fig-2-output-1.png" width="960" height="576" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: For each task, for five different sample sizes (starting with <span class="math inline">\(n=20\)</span>, then 1/5th parts of the total dataset), the proportion of intervals not containing the value 0 is plotted in reddish purple.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-2" href="notebooks/figures-cohens_d-preview.html#cell-fig-2">Source: Code to create Figures 1 and 2</a></div>
+</section>
+<section id="pearson-correlations-between-task-effects-and-age" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="pearson-correlations-between-task-effects-and-age"><span class="header-section-number">3.2</span> Pearson correlations between task effects and age</h2>
+<p>For each task and brain region of interest we also estimated the sample size required to obtain an average HDCI for Pearson’s correlation between regional fMRI task responses and age not containing the value zero (<a href="#fig-3" class="quarto-xref">Figure&nbsp;3</a> and <a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a>; <a href="#tbl-3" class="quarto-xref">Table&nbsp;3</a>) for which a large proportion of the 1000 HDCI’s does not contain the value zero.</p>
+<p>In <a href="#fig-3" class="quarto-xref">Figure&nbsp;3</a> A the results are shown for the Pearson’s correlation between age (children and adolescents aged 8-25 years) and feedback learning processing in the DLPFC. As can be seen, with a sample of 20 persons the average HDCI contains the value 0. Increasing the sample size to 70 results in neither of the 10 HDCI’s displayed nor the average of the 1000 HDCI’s containing the value 0. We can also see that the proportion of HDCI’s not containing the value zero is less than 0.5 for 20 participants but equal to 1.0 for 70 participants (<a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a> A). Therefore, for a reliable estimate of the correlation between feedback processing in the DLPFC and age, sample sizes bigger than 20 are needed.</p>
+<p>For the correlation between age and gambling in the NAcc, we can see the results in <a href="#fig-3" class="quarto-xref">Figure&nbsp;3</a> B. Here, for all plotted sample sizes both the average of the HDCI’s and all of the 10 HDCI’s displayed do contain the value zero. The proportion of HDCI’s not containing the value zero is below 0.1 for 20 participants, but with more participants almost all of the 1000 HDCI’s contain the value zero (<a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a> B). This is related to the very small correlation equal to about -0.04 (see <a href="#tbl-3" class="quarto-xref">Table&nbsp;3</a>). Thus, for this task and brain region, it is unlikely that an effect larger than zero will be detected for a correlation with age, even with the total sample size of 221 participants.</p>
+<p>In <a href="#fig-3" class="quarto-xref">Figure&nbsp;3</a> C, results are plotted for the correlation between age and self-evaluation processing in the mPFC. We see that for all plotted sample sizes both the average of the 1000 HDCI’s and most of the 10 HDCI’s displayed do contain the value zero. In <a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a> C, we also see that the proportion of HDCI’s not containing the value 0 is well below 1.0 for all sample sizes shown. Thus, for this task and brain region, with all available sample sizes the chances are high there will be no effect detected that is larger than zero. The average Pearson correlation is also small with a value around 0.13 (<a href="#tbl-3" class="quarto-xref">Table&nbsp;3</a>). The results for the correlation between age and gaining for self in the NAcc are plotted in Figure 3D. We see that up to 104 participants both the average of the 1000 HDCI’s and most of the 10 HDCI’s displayed do contain the value zero. The proportion of HDCI’s not containing the value zero increases with bigger sample sizes (<a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a> A) but is still below 0.5 for 104 participants. Therefore, with 104 participants it is still likely that the resulting interval will include the value zero. Therefore, for this task and brain region, with all available sample sizes the chances are high there will be no effect detected that is larger than zero. The average Pearson correlation is also relatively small with a value around -0.18 (<a href="#tbl-3" class="quarto-xref">Table&nbsp;3</a>). If correlations of about -0.18 are considered relevant, the conclusion might be that one could strive for a sample larger than 160.</p>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-3" class="cell" data-message="false" data-fig-height="6" data-fig-width="10">
+<div class="cell-output cell-output-display">
+<div id="fig-3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="sample-size-fmri-paper_files/figure-html/notebooks-figures-correlations-fig-3-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" data-glightbox="description: .lightbox-desc-3"><img src="sample-size-fmri-paper_files/figure-html/notebooks-figures-correlations-fig-3-output-1.png" width="960" height="576" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Estimates of Pearson’s correlation between age and the task effect for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset). For each sample size 10 randomly chosen HDCI’s out of the 1000 HDCI’s computed are displayed (in green, permutation numbers used are displayed to the right of each subfigure). The average estimate with credible interval summarizing the 1000 HDCI’s for each sample size are plotted in orange. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens. Age is modeled as linearly increasing or decreasing.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-3" href="notebooks/figures-correlations-preview.html#cell-fig-3">Source: Code to create Figures 3 and 4</a></div>
+<div id="tbl-3" class="quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Mean estimates (with credible interval in brackets) of Pearson’s correlation between age and the task effect for five different sample sizes (starting with N=20, then 1/5th parts of the total dataset) of the 1000 HDCI’s. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens.
+</figcaption>
+<div aria-describedby="tbl-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>task</th>
+<th>brain region</th>
+<th>n = 20</th>
+<th>n = 2/5</th>
+<th>n = 3/5</th>
+<th>n = 4/5</th>
+<th>N = total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Feedback</td>
+<td>DLPFC</td>
+<td><strong>0.38</strong> (-0.06, 0.69 )</td>
+<td><strong>0.38</strong> (0.16, 0.56 ), <em>N</em> = 70</td>
+<td><strong>0.37</strong> (0.21, 0.52 ), <em>N</em> = 120</td>
+<td><strong>0.38</strong> (0.24, 0.5 ), <em>N</em> = 170</td>
+<td><strong>0.38</strong> (0.27, 0.47 ), <em>N</em> = 271</td>
+</tr>
+<tr class="even">
+<td>Gambling</td>
+<td>NAcc</td>
+<td><strong>-0.02</strong> (-0.44, 0.4 )</td>
+<td><strong>-0.04</strong> (-0.29, 0.21 ), <em>N</em> = 60</td>
+<td><strong>-0.04</strong> (-0.23, 0.16 ), <em>N</em> = 100</td>
+<td><strong>-0.04</strong> (-0.2, 0.13 ), <em>N</em> = 140</td>
+<td><strong>-0.04</strong> (-0.17, 0.09 ), <em>N</em> = 221</td>
+</tr>
+<tr class="odd">
+<td>Self-evaluations</td>
+<td>mPFC</td>
+<td><strong>0.07</strong> (-0.36, 0.48 )</td>
+<td><strong>0.06</strong> (-0.23, 0.34 ), <em>N</em> = 46</td>
+<td><strong>0.06</strong> (-0.17, 0.29 ), <em>N</em> = 72</td>
+<td><strong>0.06</strong> (-0.14, 0.25 ), <em>N</em> = 98</td>
+<td><strong>0.06</strong> (-0.1, 0.22 ), <em>N</em> = 149</td>
+</tr>
+<tr class="even">
+<td>Gaining self</td>
+<td>NAcc</td>
+<td><strong>-0.18</strong> (-0.56, 0.26 )</td>
+<td><strong>-0.17</strong> (-0.44, 0.11 ), <em>N</em> = 47</td>
+<td><strong>-0.17</strong> (-0.38, 0.06 ), <em>N</em> = 74</td>
+<td><strong>-0.17</strong> (-0.35, 0.03 ), <em>N</em> = 101</td>
+<td><strong>-0.17</strong> (-0.31, -0.01 ), <em>N</em> = 156</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div class="quarto-embed-nb-cell">
+<div id="cell-fig-4" class="cell" data-message="false" data-fig-height="6" data-fig-width="10">
+<div class="cell-output cell-output-display">
+<div id="fig-4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="sample-size-fmri-paper_files/figure-html/notebooks-figures-correlations-fig-4-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" data-glightbox="description: .lightbox-desc-4"><img src="sample-size-fmri-paper_files/figure-html/notebooks-figures-correlations-fig-4-output-1.png" width="960" height="576" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: For each task, for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset), the proportion of intervals not containing the value 0 is plotted in orange. Age is modeled as linearly increasing or decreasing.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<a class="quarto-notebook-link" id="nblink-4" href="notebooks/figures-correlations-preview.html#cell-fig-4">Source: Code to create Figures 3 and 4</a></div>
+</section>
+</section>
+<section id="discussion" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Discussion</h1>
+<p>In this paper we tested how existing data can be used to approximately determine the sample size that is required for a new study that is being planned. The approach presented has been illustrated using four existing fMRI studies where Cohen’s d is the effect size of interest and four studies where a Pearson correlation for linear age is of interest. Additionally, it has been elaborated that Bayesian updating can be used to deal with the fact that the required sample size can only approximately be determined. Our results show that calculating and plotting HDCI’s can be helpful in determining at what sample sizes task effects become more stable. We illustrated with four examples how researchers can get an indication of the required sample size if they plan to execute a study that uses feedback learning, reward-processing (two examples), or self-processing. For all effects under study, the width of the HDCI became smaller with larger sample sizes, showing that the precision of the estimation increased with more data. At what sample size estimations seemed to stabilize for general contrasts (e.g., feedback processing versus rule application; reward versus loss) differed per task and region of interest. For example, the effects in the middle frontal gyrus during feedback processing were the strongest of the effects studied here. There, even for sample sizes of 20 participants, task effects clearly differed from zero for the middle frontal gyrus. But even for such a strong effect, at higher sample sizes the results became more stable (i.e., less variability in subsamples of the total dataset). For the other three tasks, the HDCI’s still contained the value zero with 20 participants but at higher sample sizes of 40-60 participants chances are very high that an effect larger than zero will be detected. In this paper we tested how existing data can be used to approximately determine the sample size that is required for a new study that is being planned. The approach presented has been illustrated using four existing fMRI studies where Cohen’s d is the effect size of interest and four studies where a Pearson correlation for linear age is of interest. Additionally, it has been elaborated that Bayesian updating can be used to deal with the fact that the required sample size can only approximately be determined.</p>
+<p>Our results show that calculating and plotting HDCI’s can be helpful in determining at what sample sizes task effects become more stable. We illustrated with four examples how researchers can get an indication of the required sample size if they plan to execute a study that uses feedback learning, reward-processing (two examples), or self-processing. For all effects under study, the width of the HDCI became smaller with larger sample sizes, showing that the precision of the estimation increased with more data. At what sample size estimations seemed to stabilize for general contrasts (e.g., feedback processing versus rule application; reward versus loss) differed per task and region of interest. For example, the effects in the middle frontal gyrus during feedback processing were the strongest of the effects studied here. There, even for sample sizes of 20 participants, task effects clearly differed from zero for the middle frontal gyrus. But even for such a strong effect, at higher sample sizes the results became more stable (i.e., less variability in subsamples of the total dataset). For the other three tasks, the HDCI’s still contained the value zero with 20 participants but at higher sample sizes of 40-60 participants chances are very high that an effect larger than zero will be detected.</p>
+<p>The results are different for the Pearson correlation between linear age and task effects, as can be seen in <a href="#fig-3" class="quarto-xref">Figure&nbsp;3</a> and <a href="#fig-4" class="quarto-xref">Figure&nbsp;4</a>. Here again the results of the middle frontal gyrus during feedback processing were the strongest. But even for such a strong effect, the sample size needed to estimate the correlation with age is much higher than the sample size needed to find a stable task effect. For the Pearson correlation, only at a sample size of <span class="math inline">\(N=70\)</span> or more the lower bound of the credible is above zero, suggesting that one can be confident that there is a positive Pearson correlation.</p>
+<p>For the correlation between linear age (between 12-28 years) and reward-processing in the NAcc, the results were dependent on the specific task context. In a gambling task with the contrast reward versus loss, even with a sample size of 221 the average HDCI contains the value zero when testing for linear age effects. We found that the average Pearson correlation is -.04 for this effect, which is so small that it is likely irrelevant. In contrast, for rewards in a vicarious reward context with the contrast reward versus no reward, probability of a positive Pearson correlation with negative age increased with larger sample sizes and the average CI did just not contain zero using the full sample size of 156 (<span class="math inline">\(M = -0.17; 95\% CI [-0.31, -0.01]\)</span>). Note that we only tested for linear age effects, whereas prior studies reported that reward processing may be best described by non-linear effects <span class="citation" data-cites="braams2014">(<a href="#ref-braams2014" role="doc-biblioref">Braams et al. 2014</a>)</span>; which should be tested in future extensions of the approach illustrated here. The results described for the linear age effects are in line with simulation studies suggesting that typically in psychology relatively large sample sizes of <span class="math inline">\(N=150\)</span> to <span class="math inline">\(N=250\)</span> <span class="citation" data-cites="schönbrodt2013">(<a href="#ref-schönbrodt2013" role="doc-biblioref">Schönbrodt and Perugini 2013</a>)</span> are needed to obtain a study that is sufficiently powered to evaluate a Pearson correlation with age or psychological variables.</p>
+<p>There are different ways in which the methods described here could be put to practice. When planning to use an existing task for follow-up or replication research, existing data can be used to provide an educated guess of the sample size that is needed in the new study (given that the new samples resemble the existing sample). In this way new task-related fMRI studies will likely be properly powered, even if these are small-scale studies from individual labs. Even in the current era of large-scale consortium studies, there remains the need to conduct studies with more modest sample sizes. Such studies can help to balance between methodological robustness of well-established experiments and experimental design novelty. These data sets could complement large, public data sets with more idiosyncratic tasks and specific samples. Furthermore, sample size determination using existing data can be combined with Bayesian updating when collecting new data for a new research project. The following steps can be used:</p>
+<ol type="1">
+<li><p>Execute Bayesian empirical sample size determination. This will render an estimate of the sample size needed for an adequately powered study.</p></li>
+<li><p>Execute the planned study with the sample size determined in the previous step.</p></li>
+<li><p>Compute the effect size of interest (e.g., Cohen’s d or Pearson’s correlation) and the corresponding HDCI.</p></li>
+<li><p>Evaluate the HDCI:</p>
+<ol type="a">
+<li><p>If the HDCI does not contain the value zero, your study is finished.</p></li>
+<li><p>If the HDCI does contain the value zero, there are two options:</p>
+<ol type="i">
+<li><p>If the estimate of the effect size is close to zero, the effect size is small. Adding more data (updating) may (or may not) render an HDCI that does not contain the value but will very likely still render an effect size that is so small that it is irrelevant.</p></li>
+<li><p>If the estimated effect size is relevant in the context of the study being executed, it may very well be (but there is no certainty) that collecting additional data (updating) will render a HDCI that does not contain the value zero. If you have the resources, it may be worthwhile to collect additional data and return to Step 3). If you do not have the resources, your study is finished.</p></li>
+</ol></li>
+</ol></li>
+</ol>
+<p>In this paper the focus was on Cohen’s d and the Pearson correlation, however, the approach presented can straightforwardly be generalized to other statistical models and effect size measures. A relatively simple example is quadratic regression with either Spearman’s correlation or the multiple correlation as the effect size measure, but generalizations to more involved statistical models are conceivable. Arguably, in more complex statistical models our approach may succeed where classical power analysis may very well fail. The reason for the latter is that in power analysis “the effect size” has to be specified. In, for example, structural equation models, this implies that factor loadings, regression coefficients and (co)variances have to be specified. Doing this such that the specification represents a certain “effect size” is at least difficult and maybe even impossible. In our approach effect sizes do not have to be specified but are straightforwardly estimated using existing data. The latter is usually easy and straightforward. Therefore, in an era of open science in which data sets are increasingly available for re-use (also for sample size determination) there is a lot of potential for the approach presented in this paper.</p>
+<section id="practical-recommendations" class="level3" data-number="4.0.1">
+<h3 data-number="4.0.1" class="anchored" data-anchor-id="practical-recommendations"><span class="header-section-number">4.0.1</span> Practical recommendations</h3>
+<p>When calculating HDCI’s using existing data, we should keep in mind that the determined sample size is only an indication of the sample size required for the new study. In the new study the unknown effect size (Cohen’s d or Pearson’s correlation) may be smaller or larger than in the existing study and therefore a somewhat smaller or larger sample size may be required. As elaborated earlier, this can be accommodated using Bayesian updating using the determined sample size as the point of departure. It is also important to consider how one can determine the resemblance of a “to be planned study” to the existing study. Although this is a subjective evaluation, it is probably wise to be mindful of different factors that can influence the strength of the effect, such as task domain, number of trials, region of interest, and modality (e.g., visual versus verbal) <span class="citation" data-cites="bennett2013 elliott2020 herting2018">(<a href="#ref-bennett2013" role="doc-biblioref">Bennett and Miller 2013</a>; <a href="#ref-elliott2020" role="doc-biblioref">Elliott et al. 2020</a>; <a href="#ref-herting2018" role="doc-biblioref">Herting et al. 2018</a>)</span>. This is also important for cases where the ultimate consequence of the sample size estimation might be that one should not execute the planned study. For example, if a study resembles study B in Figure 3, it is to be expected that the effect size for linear correlations with age (if one expects a linear and not a non-linear effect) is so small that either it is irrelevant, or unrealistic large sample sizes are required to obtain an average HDCI that does not contain zero. But even in this situation, it depends on the context whether something is a meaningful small effect or a negligible small effect (see for further discussions <span class="citation" data-cites="dick2021">Dick et al. (<a href="#ref-dick2021" role="doc-biblioref">2021</a>)</span> and <span class="citation" data-cites="funder2019">Funder and Ozer (<a href="#ref-funder2019" role="doc-biblioref">2019</a>)</span>). One might still decide to continue the study when there is evidence that the effect at hand is meaningful because cumulatively it can lead to larger effects. If the effect is yet deemed irrelevant, one could choose not to collect new data, or one could alternatively take a bet to pilot a novel version of a similar task might lead to a stronger effect. Bayesian updating can then be used to estimate the HDCI’s again after a small number of participants. If the average effect is still close to zero it is probably better to abort the study.</p>
+</section>
+</section>
+<section id="acknowledgments" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Acknowledgments</h1>
+<p>This study was funded by the NWO Spinoza prize awarded to Eveline A. Crone. The authors thank Sabine Peters, Lisa Schreuders, Jochem Spaans, and Renske van der Cruijsen for providing the ROI data files used in the paper.</p>
+<section id="references" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-achterberg2019" class="csl-entry" role="listitem">
+Achterberg, Michelle, and Mara van der Meulen. 2019. <span>“Genetic and Environmental Influences on MRI Scan Quantity and Quality.”</span> <em>Developmental Cognitive Neuroscience</em> 38 (August): 100667. <a href="https://doi.org/10.1016/j.dcn.2019.100667">https://doi.org/10.1016/j.dcn.2019.100667</a>.
+</div>
+<div id="ref-bennett2013" class="csl-entry" role="listitem">
+Bennett, Craig M., and Michael B. Miller. 2013. <span>“fMRI Reliability: Influences of Task and Experimental Design.”</span> <em>Cognitive, Affective, &amp; Behavioral Neuroscience</em> 13 (4): 690–702. <a href="https://doi.org/10.3758/s13415-013-0195-1">https://doi.org/10.3758/s13415-013-0195-1</a>.
+</div>
+<div id="ref-bishop2019" class="csl-entry" role="listitem">
+Bishop, Dorothy. 2019. <span>“Rein in the Four Horsemen of Irreproducibility.”</span> <em>Nature</em> 568 (7753): 435–35. <a href="https://doi.org/10.1038/d41586-019-01307-2">https://doi.org/10.1038/d41586-019-01307-2</a>.
+</div>
+<div id="ref-braams2014" class="csl-entry" role="listitem">
+Braams, Barbara R., Sabine Peters, Jiska S. Peper, Berna Güroğlu, and Eveline A. Crone. 2014. <span>“Gambling for Self, Friends, and Antagonists: Differential Contributions of Affective and Social Brain Regions on Adolescent Reward Processing.”</span> <em>NeuroImage</em> 100 (October): 281–89. <a href="https://doi.org/10.1016/j.neuroimage.2014.06.020">https://doi.org/10.1016/j.neuroimage.2014.06.020</a>.
+</div>
+<div id="ref-brett2002" class="csl-entry" role="listitem">
+Brett, Matthew, Jean-Luc Anton, Romain Valabregue, and Jean-Baptiste Poline. 2002. <span>“Region of Interest Analysis Using an SPM Toolbox.”</span> <em>8th International Conference on Functional Mapping of the Human Brain</em> 16 (2): 497.
+</div>
+<div id="ref-button2013" class="csl-entry" role="listitem">
+Button, Katherine S., John P. A. Ioannidis, Claire Mokrysz, Brian A. Nosek, Jonathan Flint, Emma S. J. Robinson, and Marcus R. Munafò. 2013. <span>“Power Failure: Why Small Sample Size Undermines the Reliability of Neuroscience.”</span> <em>Nature Reviews Neuroscience</em> 14 (5): 365–76. <a href="https://doi.org/10.1038/nrn3475">https://doi.org/10.1038/nrn3475</a>.
+</div>
+<div id="ref-casey2018" class="csl-entry" role="listitem">
+Casey, B. J., Tariq Cannonier, May I. Conley, Alexandra O. Cohen, Deanna M. Barch, Mary M. Heitzeg, Mary E. Soules, et al. 2018. <span>“The Adolescent Brain Cognitive Development (ABCD) Study: Imaging Acquisition Across 21 Sites.”</span> <em>Developmental Cognitive Neuroscience</em>, The adolescent brain cognitive development (ABCD) consortium: Rationale, aims, and assessment strategy, 32 (August): 43–54. <a href="https://doi.org/10.1016/j.dcn.2018.03.001">https://doi.org/10.1016/j.dcn.2018.03.001</a>.
+</div>
+<div id="ref-cohen1992" class="csl-entry" role="listitem">
+Cohen, Jacob. 1992. <span>“A Power Primer.”</span> <em>Psychological Bulletin</em> 112 (1): 155–59. <a href="https://doi.org/10.1037/0033-2909.112.1.155">https://doi.org/10.1037/0033-2909.112.1.155</a>.
+</div>
+<div id="ref-crone2016" class="csl-entry" role="listitem">
+Crone, Eveline A., Anna C. K. van Duijvenvoorde, and Jiska S. Peper. 2016. <span>“Annual Research Review: Neural Contributions to Risk-Taking in Adolescence <span></span> Developmental Changes and Individual Differences.”</span> <em>Journal of Child Psychology and Psychiatry</em> 57 (3): 353–68. <a href="https://doi.org/10.1111/jcpp.12502">https://doi.org/10.1111/jcpp.12502</a>.
+</div>
+<div id="ref-crone2022" class="csl-entry" role="listitem">
+Crone, Eveline A., Kayla H. Green, Ilse H. van de Groep, and Renske van der Cruijsen. 2022. <span>“A Neurocognitive Model of Self-Concept Development in Adolescence.”</span> <em>Annual Review of Developmental Psychology</em> 4 (Volume 4, 2022): 273–95. <a href="https://doi.org/10.1146/annurev-devpsych-120920-023842">https://doi.org/10.1146/annurev-devpsych-120920-023842</a>.
+</div>
+<div id="ref-crone2017" class="csl-entry" role="listitem">
+Crone, Eveline A., and Nikolaus Steinbeis. 2017. <span>“Neural Perspectives on Cognitive Control Development during Childhood and Adolescence.”</span> <em>Trends in Cognitive Sciences</em> 21 (3): 205–15. <a href="https://doi.org/10.1016/j.tics.2017.01.003">https://doi.org/10.1016/j.tics.2017.01.003</a>.
+</div>
+<div id="ref-vandercruijsen2023" class="csl-entry" role="listitem">
+Cruijsen, Renske van der, Neeltje E Blankenstein, Jochem P Spaans, Sabine Peters, and Eveline A Crone. 2023. <span>“Longitudinal Self-Concept Development in Adolescence.”</span> <em>Social Cognitive and Affective Neuroscience</em> 18 (1): nsac062. <a href="https://doi.org/10.1093/scan/nsac062">https://doi.org/10.1093/scan/nsac062</a>.
+</div>
+<div id="ref-denny2012" class="csl-entry" role="listitem">
+Denny, Bryan T., Hedy Kober, Tor D. Wager, and Kevin N. Ochsner. 2012. <span>“A Meta-Analysis of Functional Neuroimaging Studies of Self- and Other Judgments Reveals a Spatial Gradient for Mentalizing in Medial Prefrontal Cortex.”</span> <em>Journal of Cognitive Neuroscience</em> 24 (8): 1742–52. <a href="https://doi.org/10.1162/jocn_a_00233">https://doi.org/10.1162/jocn_a_00233</a>.
+</div>
+<div id="ref-dick2021" class="csl-entry" role="listitem">
+Dick, Anthony Steven, Daniel A. Lopez, Ashley L. Watts, Steven Heeringa, Chase Reuter, Hauke Bartsch, Chun Chieh Fan, et al. 2021. <span>“Meaningful Associations in the Adolescent Brain Cognitive Development Study.”</span> <em>NeuroImage</em> 239 (October): 118262. <a href="https://doi.org/10.1016/j.neuroimage.2021.118262">https://doi.org/10.1016/j.neuroimage.2021.118262</a>.
+</div>
+<div id="ref-efron1994" class="csl-entry" role="listitem">
+Efron, Bradley, and R. J. Tibshirani. 1994. <em>An Introduction to the Bootstrap</em>. New York: Chapman; Hall/CRC. <a href="https://doi.org/10.1201/9780429246593">https://doi.org/10.1201/9780429246593</a>.
+</div>
+<div id="ref-elliott2020" class="csl-entry" role="listitem">
+Elliott, Maxwell L., Annchen R. Knodt, David Ireland, Meriwether L. Morris, Richie Poulton, Sandhya Ramrakha, Maria L. Sison, Terrie E. Moffitt, Avshalom Caspi, and Ahmad R. Hariri. 2020. <span>“What Is the Test-Retest Reliability of Common Task-Functional MRI Measures? New Empirical Evidence and a Meta-Analysis.”</span> <em>Psychological Science</em> 31 (7): 792–806. <a href="https://doi.org/10.1177/0956797620916786">https://doi.org/10.1177/0956797620916786</a>.
+</div>
+<div id="ref-funder2019" class="csl-entry" role="listitem">
+Funder, David C., and Daniel J. Ozer. 2019. <span>“Evaluating Effect Size in Psychological Research: Sense and Nonsense.”</span> <em>Advances in Methods and Practices in Psychological Science</em> 2 (2): 156–68. <a href="https://doi.org/10.1177/2515245919847202">https://doi.org/10.1177/2515245919847202</a>.
+</div>
+<div id="ref-gelman2014" class="csl-entry" role="listitem">
+Gelman, Andrew, and John Carlin. 2014. <span>“Beyond Power Calculations: Assessing Type S (Sign) and Type M (Magnitude) Errors.”</span> <em>Perspectives on Psychological Science</em> 9 (6): 641–51. <a href="https://doi.org/10.1177/1745691614551642">https://doi.org/10.1177/1745691614551642</a>.
+</div>
+<div id="ref-gignac2016" class="csl-entry" role="listitem">
+Gignac, Gilles E., and Eva T. Szodorai. 2016. <span>“Effect Size Guidelines for Individual Differences Researchers.”</span> <em>Personality and Individual Differences</em> 102 (November): 74–78. <a href="https://doi.org/10.1016/j.paid.2016.06.069">https://doi.org/10.1016/j.paid.2016.06.069</a>.
+</div>
+<div id="ref-herting2018" class="csl-entry" role="listitem">
+Herting, Megan M., Cory Johnson, Kathryn L. Mills, Nandita Vijayakumar, Meg Dennison, Chang Liu, Anne-Lise Goddings, et al. 2018. <span>“Development of Subcortical Volumes Across Adolescence in Males and Females: A Multisample Study of Longitudinal Changes.”</span> <em>NeuroImage</em> 172 (May): 194–205. <a href="https://doi.org/10.1016/j.neuroimage.2018.01.020">https://doi.org/10.1016/j.neuroimage.2018.01.020</a>.
+</div>
+<div id="ref-ioannidis2005" class="csl-entry" role="listitem">
+Ioannidis, John P. A. 2005. <span>“Why Most Published Research Findings Are False.”</span> <em>PLOS Medicine</em> 2 (8): e124. <a href="https://doi.org/10.1371/journal.pmed.0020124">https://doi.org/10.1371/journal.pmed.0020124</a>.
+</div>
+<div id="ref-klapwijk2021" class="csl-entry" role="listitem">
+Klapwijk, Eduard T., Wouter van den Bos, Christian K. Tamnes, Nora M. Raschle, and Kathryn L. Mills. 2021. <span>“Opportunities for Increased Reproducibility and Replicability of Developmental Neuroimaging.”</span> <em>Developmental Cognitive Neuroscience</em> 47 (February): 100902. <a href="https://doi.org/10.1016/j.dcn.2020.100902">https://doi.org/10.1016/j.dcn.2020.100902</a>.
+</div>
+<div id="ref-eduardklapwijk202411526169" class="csl-entry" role="listitem">
+Klapwijk, Eduard, Herbert Hoijtink, and Joran Jongerling. 2024. <em>neuroUp: Plan Sample Size for fMRI Regions of Interest Research Using Bayesian Updating</em>. Zenodo. <a href="https://doi.org/10.5281/zenodo.11526169">https://doi.org/10.5281/zenodo.11526169</a>.
+</div>
+<div id="ref-marek2022" class="csl-entry" role="listitem">
+Marek, Scott, Brenden Tervo-Clemmens, Finnegan J. Calabro, David F. Montez, Benjamin P. Kay, Alexander S. Hatoum, Meghan Rose Donohue, et al. 2022. <span>“Reproducible Brain-Wide Association Studies Require Thousands of Individuals.”</span> <em>Nature</em> 603 (7902): 654–60. <a href="https://doi.org/10.1038/s41586-022-04492-9">https://doi.org/10.1038/s41586-022-04492-9</a>.
+</div>
+<div id="ref-maxwell2004" class="csl-entry" role="listitem">
+Maxwell, Scott E. 2004. <span>“The Persistence of Underpowered Studies in Psychological Research: Causes, Consequences, and Remedies.”</span> <em>Psychological Methods</em> 9 (2): 147–63. <a href="https://doi.org/10.1037/1082-989X.9.2.147">https://doi.org/10.1037/1082-989X.9.2.147</a>.
+</div>
+<div id="ref-munafò2017" class="csl-entry" role="listitem">
+Munafò, Marcus R., Brian A. Nosek, Dorothy V. M. Bishop, Katherine S. Button, Christopher D. Chambers, Nathalie Percie du Sert, Uri Simonsohn, Eric-Jan Wagenmakers, Jennifer J. Ware, and John P. A. Ioannidis. 2017. <span>“A Manifesto for Reproducible Science.”</span> <em>Nature Human Behaviour</em> 1 (1): 0021. <a href="https://doi.org/10.1038/s41562-016-0021">https://doi.org/10.1038/s41562-016-0021</a>.
+</div>
+<div id="ref-nord2017" class="csl-entry" role="listitem">
+Nord, Camilla L., Vincent Valton, John Wood, and Jonathan P. Roiser. 2017. <span>“Power-up: A Reanalysis of ’Power Failure’ in Neuroscience Using Mixture Modeling.”</span> <em>Journal of Neuroscience</em> 37 (34): 8051–61. <a href="https://doi.org/10.1523/JNEUROSCI.3592-16.2017">https://doi.org/10.1523/JNEUROSCI.3592-16.2017</a>.
+</div>
+<div id="ref-opensciencecollaboration2015" class="csl-entry" role="listitem">
+Open Science Collaboration. 2015. <span>“Estimating the Reproducibility of Psychological Science.”</span> <em>Science</em> 349 (6251): aac4716. <a href="https://doi.org/10.1126/science.aac4716">https://doi.org/10.1126/science.aac4716</a>.
+</div>
+<div id="ref-peters2014" class="csl-entry" role="listitem">
+Peters, Sabine, Barbara R. Braams, Maartje E. J. Raijmakers, P. Cédric M. P. Koolschijn, and Eveline A. Crone. 2014. <span>“The Neural Coding of Feedback Learning Across Child and Adolescent Development.”</span> <em>Journal of Cognitive Neuroscience</em> 26 (8): 1705–20. <a href="https://doi.org/10.1162/jocn_a_00594">https://doi.org/10.1162/jocn_a_00594</a>.
+</div>
+<div id="ref-peters2017" class="csl-entry" role="listitem">
+Peters, Sabine, and Eveline A. Crone. 2017. <span>“Increased Striatal Activity in Adolescence Benefits Learning.”</span> <em>Nature Communications</em> 8 (1): 1983. <a href="https://doi.org/10.1038/s41467-017-02174-z">https://doi.org/10.1038/s41467-017-02174-z</a>.
+</div>
+<div id="ref-poldrack2017" class="csl-entry" role="listitem">
+Poldrack, R. A., C. I. Baker, J. Durnez, K. J. Gorgolewski, P. M. Matthews, M. R. Munafo, T. E. Nichols, J. B. Poline, E. Vul, and T. Yarkoni. 2017. <span>“Scanning the Horizon: Towards Transparent and Reproducible Neuroimaging Research.”</span> <em>Nature Reviews Neuroscience</em> 18 (2): 115–26. <a href="https://doi.org/10.1038/nrn.2016.167">https://doi.org/10.1038/nrn.2016.167</a>.
+</div>
+<div id="ref-rcore" class="csl-entry" role="listitem">
+R Core Team. 2023. <em>R: A Language and Environment for Statistical Computing</em>. Vienna, Austria: R Foundation for Statistical Computing. <a href="https://www.R-project.org/">https://www.R-project.org/</a>.
+</div>
+<div id="ref-rouder2014" class="csl-entry" role="listitem">
+Rouder, Jeffrey N. 2014. <span>“Optional Stopping: No Problem for Bayesians.”</span> <em>Psychonomic Bulletin &amp; Review</em> 21 (2): 301–8. <a href="https://doi.org/10.3758/s13423-014-0595-4">https://doi.org/10.3758/s13423-014-0595-4</a>.
+</div>
+<div id="ref-satterthwaite2016" class="csl-entry" role="listitem">
+Satterthwaite, Theodore D., John J. Connolly, Kosha Ruparel, Monica E. Calkins, Chad Jackson, Mark A. Elliott, David R. Roalf, et al. 2016. <span>“The Philadelphia Neurodevelopmental Cohort: A Publicly Available Resource for the Study of Normal and Abnormal Brain Development in Youth.”</span> <em>NeuroImage</em>, Sharing the wealth: Brain Imaging Repositories in 2015, 124 (January): 1115–19. <a href="https://doi.org/10.1016/j.neuroimage.2015.03.056">https://doi.org/10.1016/j.neuroimage.2015.03.056</a>.
+</div>
+<div id="ref-schönbrodt2013" class="csl-entry" role="listitem">
+Schönbrodt, Felix D., and Marco Perugini. 2013. <span>“At What Sample Size Do Correlations Stabilize?”</span> <em>Journal of Research in Personality</em> 47 (5): 609–12. <a href="https://doi.org/10.1016/j.jrp.2013.05.009">https://doi.org/10.1016/j.jrp.2013.05.009</a>.
+</div>
+<div id="ref-schreuders2018" class="csl-entry" role="listitem">
+Schreuders, E., E. T. Klapwijk, G. J. Will, and B. Guroglu. 2018. <span>“Friend Versus Foe: Neural Correlates of Prosocial Decisions for Liked and Disliked Peers.”</span> <em>Cogn Affect Behav Neurosci</em>, January. <a href="https://doi.org/10.3758/s13415-017-0557-1">https://doi.org/10.3758/s13415-017-0557-1</a>.
+</div>
+<div id="ref-schumann2010" class="csl-entry" role="listitem">
+Schumann, G., E. Loth, T. Banaschewski, A. Barbot, G. Barker, C. Büchel, P. J. Conrod, et al. 2010. <span>“The IMAGEN Study: Reinforcement-Related Behaviour in Normal Brain Function and Psychopathology.”</span> <em>Molecular Psychiatry</em> 15 (12): 1128–39. <a href="https://doi.org/10.1038/mp.2010.4">https://doi.org/10.1038/mp.2010.4</a>.
+</div>
+<div id="ref-somerville2018" class="csl-entry" role="listitem">
+Somerville, Leah H., Susan Y. Bookheimer, Randy L. Buckner, Gregory C. Burgess, Sandra W. Curtiss, Mirella Dapretto, Jennifer Stine Elam, et al. 2018. <span>“The Lifespan Human Connectome Project in Development: A Large-Scale Study of Brain Connectivity Development in 5<span></span>21 Year Olds.”</span> <em>NeuroImage</em> 183 (December): 456–68. <a href="https://doi.org/10.1016/j.neuroimage.2018.08.050">https://doi.org/10.1016/j.neuroimage.2018.08.050</a>.
+</div>
+<div id="ref-spaans2023" class="csl-entry" role="listitem">
+Spaans, Jochem, Sabine Peters, Andrik Becht, Renske van der Cruijsen, Suzanne van de Groep, and Eveline A. Crone. 2023. <span>“Longitudinal Neural and Behavioral Trajectories of Charity Contributions Across Adolescence.”</span> <em>Journal of Research on Adolescence</em> 33 (2): 480–95. <a href="https://doi.org/10.1111/jora.12820">https://doi.org/10.1111/jora.12820</a>.
+</div>
+<div id="ref-szucs2017" class="csl-entry" role="listitem">
+Szucs, Denes, and John P. A. Ioannidis. 2017. <span>“Empirical Assessment of Published Effect Sizes and Power in the Recent Cognitive Neuroscience and Psychology Literature.”</span> <em>PLOS Biology</em> 15 (3): e2000797. <a href="https://doi.org/10.1371/journal.pbio.2000797">https://doi.org/10.1371/journal.pbio.2000797</a>.
+</div>
+<div id="ref-turner2018" class="csl-entry" role="listitem">
+Turner, Benjamin O., Erick J. Paul, Michael B. Miller, and Aron K. Barbey. 2018. <span>“Small Sample Sizes Reduce the Replicability of Task-Based fMRI Studies.”</span> <em>Communications Biology</em> 1 (1). <a href="https://doi.org/10.1038/s42003-018-0073-z">https://doi.org/10.1038/s42003-018-0073-z</a>.
+</div>
+<div id="ref-wicherts2016" class="csl-entry" role="listitem">
+Wicherts, Jelte M., Coosje L. S. Veldkamp, Hilde E. M. Augusteijn, Marjan Bakker, Robbie C. M. van Aert, and Marcel A. L. M. van Assen. 2016. <span>“Degrees of Freedom in Planning, Running, Analyzing, and Reporting Psychological Studies: A Checklist to Avoid p-Hacking.”</span> <em>Frontiers in Psychology</em> 7. <a href="https://www.frontiersin.org/articles/10.3389/fpsyg.2016.01832">https://www.frontiersin.org/articles/10.3389/fpsyg.2016.01832</a>.
+</div>
+<div id="ref-wickham2019" class="csl-entry" role="listitem">
+Wickham, Hadley, Mara Averick, Jennifer Bryan, Winston Chang, Lucy D’Agostino McGowan, Romain François, Garrett Grolemund, et al. 2019. <span>“Welcome to the Tidyverse.”</span> <em>Journal of Open Source Software</em> 4 (43): 1686. <a href="https://doi.org/10.21105/joss.01686">https://doi.org/10.21105/joss.01686</a>.
+</div>
+<div id="ref-yarkoni2009" class="csl-entry" role="listitem">
+Yarkoni, Tal. 2009. <span>“Big Correlations in Little Studies: Inflated fMRI Correlations Reflect Low Statistical Power<span></span>Commentary on Vul Et Al. (2009).”</span> <em>Perspectives on Psychological Science</em> 4 (3): 294–98. <a href="https://doi.org/10.1111/j.1745-6924.2009.01127.x">https://doi.org/10.1111/j.1745-6924.2009.01127.x</a>.
+</div>
+</div>
+<div class="hidden" aria-hidden="true">
+<span class="glightbox-desc lightbox-desc-1">Figure&nbsp;1: Estimates of task effects for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset). For each sample size 10 randomly chosen HDCI’s out of the 1000 HDCI’s computed are displayed (in light blue, permutation numbers used are displayed to the right of each subfigure). The average estimate with credible interval summarizing the 1000 HDCI’s for each sample size are plotted in reddish purple. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens.</span>
+<span class="glightbox-desc lightbox-desc-2">Figure&nbsp;2: For each task, for five different sample sizes (starting with <span class="math inline">\(n=20\)</span>, then 1/5th parts of the total dataset), the proportion of intervals not containing the value 0 is plotted in reddish purple.</span>
+<span class="glightbox-desc lightbox-desc-3">Figure&nbsp;3: Estimates of Pearson’s correlation between age and the task effect for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset). For each sample size 10 randomly chosen HDCI’s out of the 1000 HDCI’s computed are displayed (in green, permutation numbers used are displayed to the right of each subfigure). The average estimate with credible interval summarizing the 1000 HDCI’s for each sample size are plotted in orange. DLPFC = dorsolateral prefrontal cortex; mPFC = medial prefrontal cortex; NAcc = nucleus accumbens. Age is modeled as linearly increasing or decreasing.</span>
+<span class="glightbox-desc lightbox-desc-4">Figure&nbsp;4: For each task, for five different sample sizes (starting with <span class="math inline">\(N=20\)</span>, then 1/5th parts of the total dataset), the proportion of intervals not containing the value 0 is plotted in orange. Age is modeled as linearly increasing or decreasing.</span>
+</div>
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>In statistical terms: the HDCI contains 95% of the marginal posterior density of the parameter which is a function of the information in the data and prior knowledge with respect to the parameter.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"loop":false,"selector":".lightbox","descPosition":"bottom","closeEffect":"zoom","openEffect":"zoom"});
+window.onload = () => {
+  lightboxQuarto.on('slide_before_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    const href = trigger.getAttribute('href');
+    if (href !== null) {
+      const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+      if (imgEl !== null) {
+        const srcAttr = imgEl.getAttribute("src");
+        if (srcAttr && srcAttr.startsWith("data:")) {
+          slideConfig.href = srcAttr;
+        }
+      }
+    } 
+  });
+
+  lightboxQuarto.on('slide_after_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    if (window.Quarto?.typesetMath) {
+      window.Quarto.typesetMath(slideNode);
+    }
+  });
+
+};
+          </script>
+
+
+
+
+</body></html>
